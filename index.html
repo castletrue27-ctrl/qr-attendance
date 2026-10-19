@@ -481,20 +481,25 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
 .form-sub b { color: var(--text); }
 #sheetFormView .tip { margin-bottom: 12px; }
 .form-preview { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 0 24px 40px; overflow-x: auto; }
-.form-preview .steam-page { box-shadow: 0 10px 34px rgba(0, 0, 0, .5); flex: none; }
+.form-preview .steam-page { width: 210mm; min-height: 297mm; padding: 10mm; box-shadow: 0 10px 34px rgba(0, 0, 0, .5); flex: none; }
 @media (max-width: 860px) { .form-preview .steam-page { zoom: .86; } }
+.form-fields { display: flex; gap: 10px 16px; flex-wrap: wrap; align-items: center; margin: 0 24px 12px; font-size: 14px; color: var(--text-dim); }
+.form-fields label { display: inline-flex; align-items: center; gap: 8px; }
+.form-fields input { width: 150px; font-size: 15px; }
+.form-fields input.empty { border-color: var(--l); background: rgba(255, 207, 92, .08); }
 .form-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0 12px; }
 @media (max-width: 860px) { .form-grid { grid-template-columns: 1fr 1fr; } }
 
-.steam-page { width: 210mm; height: 297mm; position: relative; overflow: hidden; background: #fff; color: #000; font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif; letter-spacing: 0; page-break-after: always; break-after: page; }
+/* 인쇄할 때는 쪽 여백 10mm(@page) 안에 위에서부터 차례로 놓습니다 — 프린터 여백이 더 커도 한 쪽 안에 들어가도록 쪽 높이를 고정하지 않음 */
+.steam-page { box-sizing: border-box; width: 190mm; max-width: 100%; margin: 0 auto; position: relative; background: #fff; color: #000; font-family: "Malgun Gothic", "맑은 고딕", "Noto Sans KR", "Noto Sans CJK KR", "Apple SD Gothic Neo", sans-serif; letter-spacing: 0; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; page-break-after: always; break-after: page; page-break-inside: avoid; break-inside: avoid; }
 .steam-page:last-child { page-break-after: auto; break-after: auto; }
-.sf-title { position: absolute; left: 45.2mm; top: 10.6mm; width: 119.6mm; height: 17.3mm; border: .28mm solid #8a8a8a; border-radius: .9mm; box-shadow: .5mm .5mm 0 #cdcdcd; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.3; }
+.sf-title { box-sizing: border-box; margin: .6mm auto 0; width: 119.6mm; max-width: 64%; height: 17.3mm; border: .28mm solid #8a8a8a; border-radius: .9mm; box-shadow: .5mm .5mm 0 #cdcdcd; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.3; }
 .sf-title .t1 { font-size: 14pt; }
 .sf-title .t2 { font-size: 16pt; }
-.sf-teacher { position: absolute; right: 10mm; top: 29.8mm; font-size: 12pt; font-weight: 700; }
-.sf-table { position: absolute; left: 10.94mm; top: 38.85mm; width: 188.6mm; border-collapse: collapse; table-layout: fixed; font-size: 10pt; }
-.steam-page.cont .sf-table { top: 10.9mm; }
-.sf-table col.c-no { width: 7.4mm; } .sf-table col.c-id { width: 16.4mm; } .sf-table col.c-name { width: 16.6mm; } .sf-table col.c-lab { width: 13.6mm; } .sf-table col.c-ses { width: 13.46mm; }
+.sf-teacher { margin-top: 1.9mm; text-align: right; font-size: 12pt; line-height: 1.2; font-weight: 700; }
+.sf-table { margin: 3.95mm auto 0; width: 100%; max-width: 188.6mm; border-collapse: collapse; table-layout: fixed; font-size: 10pt; }
+.steam-page.cont .sf-table { margin-top: .9mm; }
+.sf-table col.c-no { width: 3.92%; } .sf-table col.c-id { width: 8.7%; } .sf-table col.c-name { width: 8.8%; } .sf-table col.c-lab { width: 7.21%; } .sf-table col.c-ses { width: 7.137%; }
 .sf-table th, .sf-table td { border: .18mm solid #000; text-align: center; vertical-align: middle; padding: 0; white-space: nowrap; overflow: hidden; }
 .sf-table tr > :first-child { border-left: 0; }
 .sf-table tr > :last-child { border-right: 0; }
@@ -508,8 +513,8 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
 .sf-table td { height: 9.49mm; }
 .sf-table td.mark { font-size: 13pt; line-height: 1; }
 .sf-table tbody tr:last-child td { border-bottom: .55mm solid #000; }
-.sf-foot { position: absolute; left: 11.5mm; right: 13mm; top: 258mm; display: flex; justify-content: space-between; align-items: baseline; font-size: 10pt; font-weight: 700; }
-.steam-page.cont .sf-foot { top: 229.8mm; }
+.sf-foot { margin: 9mm 3mm 0 1.5mm; display: flex; justify-content: space-between; align-items: baseline; font-size: 10pt; line-height: 1.2; font-weight: 700; }
+.sf-blank { display: inline-block; width: 22mm; }
 .sf-legend { font-size: 8pt; font-weight: 400; color: #444; }
 </style>
 <style id="pageStyle">@page { size: A4 portrait; margin: 0; }</style>
@@ -602,7 +607,8 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
       </div>
     </div>
     <div id="sheetFormView" hidden>
-      <div class="tip" id="formHint" hidden>학교 이름이나 담당교사가 비어 있어요. <b>설정 → 학교 출석부 양식</b>에 입력하거나, 컴퓨터에서 새로 받은 <b>명단 파일</b>을 불러오세요.</div>
+      <div class="tip" id="formHint" hidden>학교 이름이나 담당교사가 비어 있어요. 아래 칸에 입력하거나, 설정 → <b>명단 파일 불러오기</b>로 구글 드라이브의 새 명단 파일을 불러오세요(출석 기록은 그대로).</div>
+      <div class="form-fields"><label>학교 <input id="ffSchool" maxlength="40" placeholder="예: ○○중학교"></label><label>담당교사 <input id="ffTeacher" maxlength="40" placeholder="이름"></label><span>양식의 제목과 도장(인) 칸에 들어가요</span></div>
       <p class="form-sub">QR 출석 기록이 칸에 <b>저절로</b> 채워집니다 (○ 출석 · △ 지각 · ◁ 조퇴 · × 결석 · 공 공결, 아직 안 한 차시는 빈칸). <b>인쇄 · PDF</b>를 누르고 프린터 대신 <b>PDF로 저장</b>을 고르면 파일로 받을 수 있어요.</p>
       <div class="form-preview" id="formPreview"></div>
     </div>
@@ -809,7 +815,7 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
 
 /* ===== 00-util.js ===== */
 /* 공용 도구 */
-const APP_VERSION = '1.3';
+const APP_VERSION = '1.4';
 // 태블릿용 웹 버전(https 주소)으로 만들 때 true — 명단을 빼고, 첫 화면에서 명단 파일을 불러옵니다
 const WEB_BUILD = true;
 const WEB_URL = 'https://castletrue27-ctrl.github.io/qr-attendance/';
@@ -2215,12 +2221,12 @@ document.addEventListener('pointerdown', e => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
 
 // ── 인쇄 ──
-function printPages(html, landscape) {
+// 인쇄 영역은 화면에 안 보이므로 인쇄가 끝나도 비우지 않습니다 (태블릿 Chrome은 인쇄 그림을 늦게 만들어서, 비우면 빈 종이가 나올 수 있음)
+function printPages(html, landscape, margin = '0') {
   $('#print-area').innerHTML = html;
-  $('#pageStyle').textContent = `@page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 0; }`;
+  $('#pageStyle').textContent = `@page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: ${margin}; }`;
   setTimeout(() => window.print(), 60);
 }
-window.addEventListener('afterprint', () => { $('#print-area').innerHTML = ''; });
 
 function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen();
@@ -2800,6 +2806,7 @@ function initSheet() {
   $('#printSheetBtn').onclick = () => (sheetView === 'form' ? printSteamForm() : printSheet());
   $$('#sheetView button').forEach(b => { b.onclick = () => setSheetView(b.dataset.view); });
   tabRenderers.sheet = () => (sheetView === 'form' ? renderFormPreview() : renderSheet());
+  initFormFields();
 }
 
 
@@ -2823,7 +2830,7 @@ function steamFormHtml() {
   const fm = S.config.form, sessions = sessionsSorted(), students = studentsSorted();
   const rows = Math.max(FORM_MIN_ROWS, students.length), pages = [];
   for (let i = 0; i < Math.max(1, sessions.length); i += FORM_PER_PAGE) pages.push(sessions.slice(i, i + FORM_PER_PAGE));
-  const teacher = fm.teacher ? esc(fm.teacher) : '';
+  const teacher = fm.teacher ? esc(fm.teacher) : '<span class="sf-blank"></span>';
   return pages.map((chunk, pi) => {
     const cols = Array.from({ length: FORM_PER_PAGE }, (_, k) => chunk[k] || null);
     let h = `<div class="steam-page${pi ? ' cont' : ''}">`;
@@ -2852,6 +2859,11 @@ function renderFormPreview() {
   box.innerHTML = steamFormHtml();
   const missing = ['school', 'teacher'].filter(k => !S.config.form[k]);
   $('#formHint').hidden = !missing.length;
+  for (const [id, k] of [['#ffSchool', 'school'], ['#ffTeacher', 'teacher']]) {
+    const el = $(id);
+    if (document.activeElement !== el) el.value = S.config.form[k] || '';
+    el.classList.toggle('empty', !S.config.form[k]);
+  }
 }
 function setSheetView(v) {
   sheetView = v;
@@ -2860,7 +2872,28 @@ function setSheetView(v) {
   $('#sheetFormView').hidden = v !== 'form';
   if (v === 'form') renderFormPreview(); else renderSheet();
 }
-function printSteamForm() { printPages(steamFormHtml(), false); }
+async function printSteamForm() {
+  const fm = S.config.form, miss = [!fm.school && '학교 이름', !fm.teacher && '담당교사 이름'].filter(Boolean);
+  if (miss.length && !await ask(`${miss.join('과 ')}이 비어 있어요`,
+    '출석부 위쪽 <b>학교</b>·<b>담당교사</b> 칸에 입력하면 양식에 들어갑니다(태블릿에서는 새 명단 파일을 불러와도 채워져요).<br>빈칸으로 인쇄할까요?', '빈칸으로 인쇄')) {
+    $(fm.teacher ? '#ffSchool' : '#ffTeacher').focus();
+    return;
+  }
+  printPages(steamFormHtml(), false, '10mm');
+}
+
+// 양식 화면 위 학교·담당교사 칸 (설정의 같은 칸과 함께 바뀜)
+function initFormFields() {
+  let timer = 0;
+  for (const [id, k] of [['#ffSchool', 'school'], ['#ffTeacher', 'teacher']]) {
+    $(id).oninput = e => {
+      S.config.form[k] = e.target.value.trim();
+      save();
+      clearTimeout(timer);
+      timer = setTimeout(renderFormPreview, 250);
+    };
+  }
+}
 
 
 /* ===== 56-ui-cards.js ===== */
