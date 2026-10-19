@@ -1,0 +1,3093 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#04050a">
+<title>과학 방과후 QR 출석체크</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<style>:root {
+  --bg: #04050a;
+  --surface: #0f1424;
+  --surface-2: #161d33;
+  --surface-3: #1d2642;
+  --border: #232c48;
+  --border-2: #303b60;
+  --text: #eef1fb;
+  --text-dim: #8d97b8;
+  --text-faint: #5c6688;
+  --cyan: #3ee7ff;
+  --violet: #9b6bff;
+  --pink: #ff6bc4;
+  --grad: linear-gradient(120deg, var(--cyan) 0%, var(--violet) 55%, var(--pink) 100%);
+  --p: #3ddc97;
+  --l: #ffcf5c;
+  --e: #ff9f5c;
+  --a: #ff5c7a;
+  --x: #b49bff;
+  --r: 16px;
+  --top-h: 64px;
+  font-family: "Pretendard Variable", Pretendard, "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; word-break: keep-all; overflow: hidden;
+}
+button, input, select { font: inherit; color: inherit; }
+.num, .clock, .tnum { font-variant-numeric: tabular-nums; }
+.bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(900px 520px at 10% -10%, rgba(62, 231, 255, .12) 0%, transparent 60%),
+    radial-gradient(1000px 560px at 92% 6%, rgba(155, 107, 255, .14) 0%, transparent 58%),
+    radial-gradient(700px 420px at 50% 110%, rgba(255, 107, 196, .08) 0%, transparent 60%), var(--bg);
+}
+.bg::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(140, 170, 255, .045) 1px, transparent 1px), linear-gradient(90deg, rgba(140, 170, 255, .045) 1px, transparent 1px);
+  background-size: 56px 56px; mask-image: radial-gradient(1200px 800px at 50% 30%, #000 0%, transparent 78%);
+}
+
+/* ── 위쪽 띠 ── */
+.top {
+  position: relative; z-index: 3; height: var(--top-h); display: flex; align-items: center; gap: 18px; padding: 0 18px;
+  border-bottom: 1px solid var(--border); background: rgba(8, 11, 22, .82); backdrop-filter: blur(8px);
+}
+.brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.logo { width: 34px; height: 34px; border-radius: 9px; background: var(--grad); position: relative; flex: none; }
+.logo i { position: absolute; width: 9px; height: 9px; border: 2.5px solid #070a14; border-radius: 2px; }
+.logo i:nth-child(1) { left: 6px; top: 6px; } .logo i:nth-child(2) { right: 6px; top: 6px; } .logo i:nth-child(3) { left: 6px; bottom: 6px; }
+.logo i:nth-child(4) { right: 8px; bottom: 8px; width: 5px; height: 5px; background: #070a14; border: 0; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.brand-text b { font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand-text small { font-size: 11.5px; color: var(--cyan); letter-spacing: .12em; font-weight: 700; }
+.tabs { display: flex; gap: 4px; margin-left: 12px; }
+.tabs button {
+  border: 1px solid transparent; background: none; padding: 8px 14px; border-radius: 10px; cursor: pointer; color: var(--text-dim);
+  font-weight: 700; font-size: 14.5px; display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.tabs button:hover { color: var(--text); background: var(--surface-2); }
+.tabs button.on { color: var(--text); background: var(--surface-2); border-color: var(--border-2); box-shadow: inset 0 -2px 0 var(--cyan); }
+.ti { font-size: 15px; }
+.top-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.save-badge { font-size: 12.5px; color: var(--p); white-space: nowrap; }
+.save-badge.warn { color: var(--l); }
+.icon-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); cursor: pointer; color: var(--text-dim); }
+.icon-btn:hover { color: var(--cyan); border-color: var(--cyan); }
+
+main { position: relative; z-index: 1; height: calc(100% - var(--top-h)); }
+.tab { display: none; height: 100%; overflow: auto; }
+.tab.on { display: block; }
+#tab-scan.on { overflow: hidden; }
+
+/* ── 버튼 · 입력 ── */
+.btn {
+  border: 1px solid var(--border-2); background: var(--surface-2); color: var(--text); padding: 9px 16px; border-radius: 11px;
+  font-weight: 700; cursor: pointer; white-space: nowrap; transition: background .15s, border-color .15s, transform .05s;
+}
+.btn:hover { border-color: var(--cyan); }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: linear-gradient(120deg, #2fb8d6, #7a55e0); border-color: transparent; color: #fff; }
+.btn.primary:hover { filter: brightness(1.1); }
+.btn.ghost { background: transparent; }
+.btn.sm { padding: 6px 11px; font-size: 13.5px; border-radius: 9px; }
+.btn.xl { padding: 15px 30px; font-size: 19px; border-radius: 14px; }
+.btn.danger { background: #c23a55; border-color: transparent; color: #fff; }
+.btn.danger-ghost { background: transparent; border-color: rgba(255, 92, 122, .45); color: #ff8da2; }
+.btn.danger-ghost:hover { border-color: var(--a); }
+.btn:disabled { opacity: .45; cursor: default; }
+.grow { flex: 1; }
+.tgl { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13.5px; color: var(--text-dim); user-select: none; white-space: nowrap; }
+.tgl input { position: absolute; opacity: 0; width: 0; height: 0; }
+.tgl span { width: 34px; height: 20px; border-radius: 20px; background: var(--surface-3); border: 1px solid var(--border-2); position: relative; transition: background .15s; flex: none; }
+.tgl span::after { content: ''; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--text-dim); transition: transform .15s, background .15s; }
+.tgl input:checked + span { background: rgba(62, 231, 255, .25); border-color: var(--cyan); }
+.tgl input:checked + span::after { transform: translateX(14px); background: var(--cyan); }
+.tgl input:focus-visible + span { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.tgl.block { display: flex; margin: 10px 0; color: var(--text); }
+select, input[type=text], input:not([type]), input[type=number], input[type=date], input[type=time] {
+  background: var(--surface); border: 1px solid var(--border-2); border-radius: 9px; padding: 7px 10px; color: var(--text); min-width: 0;
+}
+select:focus, input:focus { outline: 2px solid rgba(62, 231, 255, .55); outline-offset: 1px; border-color: var(--cyan); }
+input[type=date], input[type=time] { color-scheme: dark; }
+
+/* ── 출석 체크 화면 ── */
+.scan-layout { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 16px; padding: 16px; }
+.cam-col { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
+.cam-box {
+  position: relative; flex: 1; min-height: 240px; border-radius: 22px; overflow: hidden; background: #070a14;
+  border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
+}
+.cam-box video, .cam-box #overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cam-box.mirror video, .cam-box.mirror #overlay { transform: scaleX(-1); }
+.cam-frame { position: absolute; left: 50%; top: 50%; width: min(46%, 62vh); aspect-ratio: 1; transform: translate(-50%, -52%); pointer-events: none; opacity: 0; transition: opacity .3s; }
+.cam-box.live .cam-frame { opacity: 1; }
+.cam-frame i { position: absolute; width: 22%; height: 22%; border: 5px solid var(--cyan); filter: drop-shadow(0 0 8px rgba(62, 231, 255, .6)); }
+.cam-frame i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 18px 0 0 0; }
+.cam-frame i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 18px 0 0; }
+.cam-frame i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 18px; }
+.cam-frame i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 18px 0; }
+.cam-box.live .cam-frame::after {
+  content: ''; position: absolute; left: 6%; right: 6%; height: 3px; top: 10%; border-radius: 3px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent); animation: sweep 2.4s ease-in-out infinite;
+}
+@keyframes sweep { 0%, 100% { top: 10%; opacity: .2; } 50% { top: 88%; opacity: .9; } }
+.cam-hint {
+  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); padding: 8px 18px; border-radius: 999px;
+  background: rgba(4, 6, 14, .72); border: 1px solid var(--border-2); font-weight: 700; font-size: 17px; white-space: nowrap; opacity: 0; transition: opacity .3s;
+}
+.cam-box.live .cam-hint { opacity: 1; }
+.mode-badge {
+  position: absolute; left: 14px; top: 14px; padding: 6px 13px; border-radius: 999px; font-size: 13.5px; font-weight: 800;
+  background: rgba(4, 6, 14, .78); border: 1px solid var(--border-2); z-index: 2;
+}
+.mode-badge.rec { color: var(--p); border-color: rgba(61, 220, 151, .5); }
+.mode-badge.rec::before { content: '●'; margin-right: 6px; animation: blink 1.4s infinite; }
+.mode-badge.practice { color: var(--l); border-color: rgba(255, 207, 92, .5); }
+@keyframes blink { 50% { opacity: .25; } }
+.cam-start { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; background: radial-gradient(600px 360px at 50% 40%, rgba(62, 231, 255, .08), transparent 70%); z-index: 3; }
+.cam-start[hidden] { display: none; }
+.cam-start-inner { max-width: 520px; }
+.big-icon { font-size: 58px; line-height: 1; margin-bottom: 8px; }
+.cam-start h2 { margin: 6px 0 8px; font-size: 26px; }
+.cam-start p { color: var(--text-dim); margin: 0 0 20px; }
+.cam-start p b { color: var(--text); }
+.cam-msg { margin-top: 18px !important; color: var(--l) !important; white-space: pre-line; }
+.cam-msg:empty { display: none; }
+
+.result {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.9); z-index: 4; min-width: min(560px, 86%);
+  padding: 26px 34px 24px; border-radius: 26px; text-align: center; opacity: 0; pointer-events: none;
+  background: rgba(8, 12, 24, .985); border: 2px solid var(--border-2); box-shadow: 0 30px 80px rgba(0, 0, 0, .6); transition: opacity .18s, transform .18s;
+}
+.result.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.result .r-icon { font-size: 50px; line-height: 1; }
+.result .r-name { font-size: clamp(40px, 6.4vw, 78px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.15; margin: 8px 0 2px; }
+.result .r-who { color: var(--text-dim); font-size: 19px; font-weight: 700; }
+.result .r-msg { margin-top: 12px; font-size: 25px; font-weight: 800; }
+.result .r-sub { margin-top: 4px; color: var(--text-dim); font-size: 16px; }
+.result.ok { border-color: var(--p); box-shadow: 0 0 0 6px rgba(61, 220, 151, .15), 0 30px 80px rgba(0, 0, 0, .6); }
+.result.ok .r-msg { color: var(--p); }
+.result.late { border-color: var(--l); box-shadow: 0 0 0 6px rgba(255, 207, 92, .15), 0 30px 80px rgba(0, 0, 0, .6); }
+.result.late .r-msg { color: var(--l); }
+.result.dup { border-color: var(--cyan); }
+.result.dup .r-msg { color: var(--cyan); }
+.result.practice { border-color: var(--violet); }
+.result.practice .r-msg { color: var(--x); }
+.result.bad { border-color: var(--a); }
+.result.bad .r-msg, .result.bad .r-name { color: #ff8da2; }
+
+.cam-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 2px 4px; }
+.cam-state { font-size: 13.5px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%; }
+.cam-state::before { content: '●'; margin-right: 6px; color: var(--text-faint); }
+.cam-state.on::before { color: var(--p); }
+.cam-state.err::before { color: var(--a); }
+.recent { display: flex; align-items: center; gap: 8px; overflow: hidden; height: 40px; padding: 0 4px; flex: none; }
+.recent-label { font-size: 12.5px; color: var(--text-faint); font-weight: 700; white-space: nowrap; }
+.recent-empty { font-size: 13px; color: var(--text-faint); }
+.recent .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 13.5px; white-space: nowrap; animation: pop .3s; }
+.recent .chip b { font-weight: 800; }
+.recent .chip.p { border-color: rgba(61, 220, 151, .5); } .recent .chip.l { border-color: rgba(255, 207, 92, .5); }
+.recent .chip small { color: var(--text-dim); }
+@keyframes pop { from { transform: scale(.8); opacity: 0; } }
+
+.side { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.sess-card { border-radius: var(--r); background: var(--surface); border: 1px solid var(--border); padding: 14px 16px 14px; }
+.sess-pick select { width: 100%; font-weight: 800; font-size: 15.5px; padding: 9px 11px; background: var(--surface-2); }
+.sess-meta { display: flex; gap: 10px; justify-content: space-between; margin-top: 8px; font-size: 13.5px; color: var(--text-dim); }
+.sess-meta #sessNote { color: var(--l); text-align: right; }
+.clock { font-size: 52px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.1; margin-top: 4px; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.phase { font-size: 15px; font-weight: 700; min-height: 22px; }
+.phase.open { color: var(--p); } .phase.late { color: var(--l); } .phase.over, .phase.past { color: var(--text-dim); } .phase.before, .phase.future { color: var(--x); }
+.counts { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+.counts span { flex: 1; min-width: 60px; text-align: center; padding: 6px 4px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 12.5px; color: var(--text-dim); line-height: 1.25; }
+.counts span b { display: block; font-size: 22px; color: var(--text); font-weight: 900; }
+.counts .p b { color: var(--p); } .counts .l b { color: var(--l); } .counts .none b { color: var(--text-dim); }
+.bar { display: flex; height: 7px; border-radius: 7px; overflow: hidden; background: var(--surface-3); margin-top: 10px; }
+.bar i { display: block; height: 100%; width: 0; transition: width .4s; }
+.bar .p { background: var(--p); } .bar .l { background: var(--l); } .bar .e { background: var(--e); } .bar .x { background: var(--x); }
+.roster-head { display: flex; align-items: baseline; gap: 8px; padding: 0 4px; }
+.roster-head b { font-size: 14px; } .roster-head small { color: var(--text-faint); font-size: 12px; }
+.roster { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-content: start; padding: 2px; }
+.stu {
+  position: relative; border-radius: 11px; background: var(--surface); border: 1px solid var(--border); padding: 6px 9px 6px; text-align: left; cursor: pointer;
+  display: flex; flex-direction: column; gap: 0; min-width: 0; transition: border-color .15s, background .2s;
+}
+.stu:hover { border-color: var(--cyan); }
+.stu .nm { font-weight: 800; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stu .cl { font-size: 11.5px; color: var(--text-faint); white-space: nowrap; }
+.stu .st { font-size: 12px; font-weight: 800; color: var(--text-faint); white-space: nowrap; }
+.stu.p { background: rgba(61, 220, 151, .1); border-color: rgba(61, 220, 151, .45); } .stu.p .st { color: var(--p); }
+.stu.l { background: rgba(255, 207, 92, .1); border-color: rgba(255, 207, 92, .45); } .stu.l .st { color: var(--l); }
+.stu.e { background: rgba(255, 159, 92, .1); border-color: rgba(255, 159, 92, .45); } .stu.e .st { color: var(--e); }
+.stu.a { background: rgba(255, 92, 122, .09); border-color: rgba(255, 92, 122, .4); } .stu.a .st { color: var(--a); }
+.stu.x { background: rgba(180, 155, 255, .1); border-color: rgba(180, 155, 255, .4); } .stu.x .st { color: var(--x); }
+.stu.auto { border-style: dashed; }
+.stu.flash { animation: flash 1.2s; }
+@keyframes flash { 0% { box-shadow: 0 0 0 0 rgba(62, 231, 255, .9); transform: scale(1.06); } 100% { box-shadow: 0 0 0 14px rgba(62, 231, 255, 0); transform: scale(1); } }
+.side-foot { display: flex; gap: 8px; }
+.side-foot .btn { flex: 1; }
+
+/* ── 상태 고르기 팝업 ── */
+.pop {
+  position: fixed; z-index: 30; min-width: 250px; padding: 12px; border-radius: 14px; background: #121a30; border: 1px solid var(--border-2);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .55);
+}
+.pop[hidden] { display: none; }
+.pop h4 { margin: 0 0 2px; font-size: 16px; }
+.pop .pop-sub { color: var(--text-dim); font-size: 12.5px; margin-bottom: 10px; }
+.pop .pop-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.pop .pop-btns button { padding: 9px 6px; border-radius: 10px; border: 1px solid var(--border-2); background: var(--surface-2); cursor: pointer; font-weight: 800; }
+.pop .pop-btns button.cur { outline: 2px solid var(--cyan); }
+.pop .pop-btns .p { color: var(--p); } .pop .pop-btns .l { color: var(--l); } .pop .pop-btns .e { color: var(--e); } .pop .pop-btns .a { color: var(--a); } .pop .pop-btns .x { color: var(--x); }
+.pop .pop-btns .clear { color: var(--text-dim); font-weight: 600; }
+
+/* ── 공통 페이지 ── */
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 22px 24px 12px; flex-wrap: wrap; }
+.page-head h1 { margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.03em; }
+.sub { color: var(--text-dim); margin: 4px 0 0; font-size: 14px; }
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.legend { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 24px 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-dim); }
+.legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+.foot-note { color: var(--text-faint); font-size: 13px; padding: 10px 24px 30px; margin: 0; }
+
+/* 출석부 표 */
+.sheet-wrap { margin: 0 24px; overflow: auto; max-height: calc(100vh - var(--top-h) - 190px); border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+table.sheet { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; font-size: 14px; }
+.sheet th, .sheet td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 0; text-align: center; white-space: nowrap; }
+.sheet thead th { position: sticky; top: 0; z-index: 2; background: var(--surface-2); padding: 8px 8px; font-weight: 800; font-size: 13px; line-height: 1.25; }
+.sheet thead th small { display: block; color: var(--text-dim); font-weight: 600; }
+.sheet thead th.today { background: #1c2a4d; box-shadow: inset 0 -3px 0 var(--cyan); }
+.sheet thead th.closed small::after { content: ' · 마감'; color: var(--p); }
+.sheet .fix { position: sticky; z-index: 1; background: var(--surface); }
+.sheet thead .fix { z-index: 3; background: var(--surface-2); }
+.sheet .c1 { left: 0; min-width: 52px; } .sheet .c2 { left: 52px; min-width: 46px; } .sheet .c3 { left: 98px; min-width: 76px; text-align: left; padding-left: 10px !important; font-weight: 800; }
+.sheet tbody td.fix { padding: 6px 6px; }
+.sheet tbody tr:hover td { background: rgba(62, 231, 255, .04); }
+.sheet tbody tr:hover td.fix { background: #141b31; }
+.sheet .cell { display: block; width: 100%; min-width: 74px; padding: 7px 6px; border: 0; background: none; cursor: pointer; font-weight: 800; font-size: 13.5px; color: var(--text-faint); }
+.sheet .cell:hover { outline: 2px solid var(--cyan); outline-offset: -2px; }
+.sheet .cell small { display: block; font-size: 11px; font-weight: 600; opacity: .8; margin-top: -1px; }
+.sheet .cell.p { color: var(--p); background: rgba(61, 220, 151, .1); }
+.sheet .cell.l { color: var(--l); background: rgba(255, 207, 92, .12); }
+.sheet .cell.e { color: var(--e); background: rgba(255, 159, 92, .12); }
+.sheet .cell.a { color: var(--a); background: rgba(255, 92, 122, .12); }
+.sheet .cell.a.auto { background: rgba(255, 92, 122, .05); color: rgba(255, 92, 122, .6); font-weight: 600; }
+.sheet .cell.x { color: var(--x); background: rgba(180, 155, 255, .12); }
+.sheet .cell.na { cursor: default; }
+.sheet td.today { box-shadow: inset 2px 0 0 rgba(62, 231, 255, .35), inset -2px 0 0 rgba(62, 231, 255, .35); }
+.sheet .sum { padding: 6px 9px; font-weight: 700; color: var(--text-dim); min-width: 42px; }
+.sheet .sum.rate { color: var(--text); min-width: 64px; }
+.sheet .sum.full { color: var(--p); }
+.sheet tfoot td { position: sticky; bottom: 0; background: var(--surface-2); padding: 8px 6px; font-weight: 800; font-size: 13px; color: var(--text-dim); }
+.sheet tfoot td.fix { z-index: 3; }
+
+/* QR 카드 미리보기 */
+.seg { display: inline-flex; border: 1px solid var(--border-2); border-radius: 11px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 9px 14px; cursor: pointer; font-weight: 700; color: var(--text-dim); }
+.seg button.on { background: var(--surface-3); color: var(--text); box-shadow: inset 0 -2px 0 var(--cyan); }
+.card-tools { display: flex; gap: 8px; align-items: center; padding: 0 24px 10px; }
+.tip { margin: 0 24px 16px; padding: 12px 16px; border-radius: 12px; background: rgba(62, 231, 255, .06); border: 1px solid rgba(62, 231, 255, .25); color: var(--text-dim); font-size: 13.5px; }
+.tip b { color: var(--text); }
+.card-preview { display: flex; flex-wrap: wrap; gap: 14px; padding: 0 24px 40px; }
+.pick { display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: opacity .15s; }
+.pick-head { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-dim); font-weight: 700; }
+.pick-head input { width: 17px; height: 17px; margin: 0; accent-color: #3ee7ff; }
+.pick.off { opacity: .32; }
+.pick .qcard, .pick .qsticker { box-shadow: 0 8px 24px rgba(0, 0, 0, .45); border-radius: 8px; }
+
+/* 카드·스티커 모양 (화면·인쇄 공용, mm 단위) */
+.qcard, .qsticker { background: #fff; color: #111827; position: relative; overflow: hidden; font-family: "Pretendard Variable", Pretendard, "Malgun Gothic", "맑은 고딕", sans-serif; }
+.qcard { width: 90mm; height: 55mm; display: grid; grid-template-columns: 1fr 37mm; grid-template-rows: 9mm 1fr; }
+.qcard .band { grid-column: 1 / -1; background: linear-gradient(110deg, #0e2b52, #3b2a7a 60%, #6b2f6f); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 4mm; font-size: 2.65mm; font-weight: 700; }
+.qcard .band b { font-weight: 900; letter-spacing: .02em; }
+.qcard .info { padding: 4mm 0 3mm 5mm; display: flex; flex-direction: column; min-width: 0; }
+.qcard .who { font-size: 3.3mm; color: #4b5563; font-weight: 700; }
+.qcard .name { font-size: 9.6mm; font-weight: 900; letter-spacing: -0.03em; line-height: 1.12; margin-top: .6mm; white-space: nowrap; }
+.qcard .when { margin-top: auto; font-size: 2.65mm; color: #374151; line-height: 1.45; }
+.qcard .when b { color: #111827; }
+.qcard .use { margin-top: 1.2mm; font-size: 2.45mm; color: #6b7280; }
+.qcard .qr { padding: 2mm 3mm 0 0; display: flex; flex-direction: column; align-items: center; }
+.qcard .qr svg { width: 34mm; height: 34mm; display: block; }
+.qcard .code { font-family: Consolas, "D2Coding", monospace; font-size: 2.5mm; color: #6b7280; letter-spacing: .06em; margin-top: -.6mm; }
+.qsticker { width: 66mm; height: 35mm; display: flex; align-items: center; gap: 1mm; padding: 0 2.5mm 0 1mm; border: .3mm solid #d1d5db; border-radius: 3mm; }
+.qsticker svg { width: 31mm; height: 31mm; flex: none; display: block; }
+.qsticker .s-info { display: flex; flex-direction: column; min-width: 0; }
+.qsticker .s-title { font-size: 2.3mm; color: #6b7280; font-weight: 700; line-height: 1.3; }
+.qsticker .s-name { font-size: 7mm; font-weight: 900; letter-spacing: -0.03em; line-height: 1.15; white-space: nowrap; }
+.qsticker .s-who { font-size: 2.9mm; color: #374151; font-weight: 700; }
+.qsticker .code { font-family: Consolas, monospace; font-size: 2.3mm; color: #9ca3af; margin-top: 1mm; letter-spacing: .05em; }
+
+/* ── 설정 ── */
+.set-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding: 0 24px 40px; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px 18px; min-width: 0; }
+.panel.wide { grid-column: 1 / -1; }
+.panel h2 { margin: 0 0 10px; font-size: 17px; }
+.panel h2 small { color: var(--text-dim); font-weight: 600; font-size: 13.5px; margin-left: 4px; }
+.field { display: flex; flex-direction: column; gap: 5px; margin: 10px 0; font-size: 13.5px; color: var(--text-dim); }
+.field select, .field input { color: var(--text); font-size: 15px; }
+.hint { color: var(--text-dim); font-size: 13px; margin: 6px 0; }
+.hint b { color: var(--text); }
+.tbl-wrap { overflow: auto; max-height: 420px; border: 1px solid var(--border); border-radius: 12px; margin: 10px 0; }
+table.edit { border-collapse: collapse; width: 100%; font-size: 14px; }
+.edit th { position: sticky; top: 0; background: var(--surface-2); text-align: left; padding: 8px 10px; font-size: 12.5px; color: var(--text-dim); z-index: 1; }
+.edit td { border-top: 1px solid var(--border); padding: 5px 8px; }
+.edit input { width: 100%; padding: 5px 8px; background: transparent; border-color: transparent; }
+.edit input:hover { border-color: var(--border-2); }
+.edit input[type=number] { width: 64px; }
+.edit input[type=time] { width: 112px; }
+.edit .mono { font-family: Consolas, monospace; color: var(--text-dim); font-size: 13px; }
+.edit .del { background: none; border: 0; color: var(--text-faint); cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 8px; }
+.edit .del:hover { color: var(--a); background: rgba(255, 92, 122, .1); }
+.add-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13.5px; color: var(--text-dim); }
+.add-row input[type=number] { width: 66px; }
+.add-row #addName { width: 120px; }
+.add-row #addNote { flex: 1; min-width: 140px; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0 4px; }
+
+/* ── 사용 방법 ── */
+.help { max-width: 920px; margin: 0 auto; padding: 26px 24px 60px; }
+.help h1 { margin: 0; font-size: 30px; font-weight: 900; letter-spacing: -0.03em; }
+.help h2 { margin: 34px 0 12px; font-size: 20px; }
+.steps { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.step { display: flex; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 14px 18px; }
+.step > b { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--grad); color: #070a14; font-weight: 900; font-size: 16px; }
+.step h3 { margin: 4px 0 4px; font-size: 16.5px; }
+.step p { margin: 0; color: var(--text-dim); }
+.step p b { color: var(--text); }
+.help-sched { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.help-sched div { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 9px 12px; font-size: 13.5px; color: var(--text-dim); }
+.help-sched div b { display: block; color: var(--text); font-size: 15px; }
+.help-sched div.first { border-color: rgba(255, 207, 92, .5); }
+.help-sched div.first b { color: var(--l); }
+details { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0 16px; margin: 8px 0; }
+summary { cursor: pointer; padding: 12px 0; font-weight: 800; }
+details p, details ul { color: var(--text-dim); margin: 0 0 14px; }
+details b { color: var(--text); }
+details li { margin: 4px 0; }
+.ver { color: var(--text-faint); font-size: 12.5px; margin-top: 30px; }
+
+/* ── 알림 · 확인 창 ── */
+#toast {
+  position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px); z-index: 50; padding: 11px 20px; border-radius: 12px;
+  background: #1a2442; border: 1px solid var(--border-2); font-weight: 700; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: 90vw;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+#toast.warn { border-color: var(--l); color: var(--l); }
+dialog { border: 1px solid var(--border-2); background: #121a30; color: var(--text); border-radius: 18px; padding: 22px 24px 18px; max-width: 460px; width: calc(100% - 40px); box-shadow: 0 30px 80px rgba(0, 0, 0, .6); }
+dialog::backdrop { background: rgba(2, 4, 10, .6); }
+dialog h3 { margin: 0 0 10px; font-size: 19px; }
+#dialogBody { color: var(--text-dim); }
+#dialogBody b { color: var(--text); }
+.dialog-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+#print-area { display: none; }
+
+/* ── 좁은 화면 ── */
+@media (max-width: 1180px) {
+  .tabs button { padding: 8px 10px; }
+  .ti { display: none; }
+  .scan-layout { grid-template-columns: minmax(0, 1fr) 360px; }
+  .roster { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .set-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 860px) {
+  body { overflow: auto; }
+  .top { height: auto; flex-wrap: wrap; padding: 10px 14px; gap: 8px; }
+  .tabs { margin: 0; order: 3; width: 100%; overflow-x: auto; }
+  main { height: auto; }
+  .tab { height: auto; overflow: visible; }
+  #tab-scan.on { overflow: visible; }
+  .scan-layout { grid-template-columns: 1fr; height: auto; }
+  .cam-box { flex: none; aspect-ratio: 4 / 3; }
+  .roster { max-height: none; }
+  .set-grid { grid-template-columns: 1fr; }
+  .help-sched { grid-template-columns: repeat(2, 1fr); }
+  .sheet-wrap { max-height: none; }
+  .save-badge { display: none; }
+}
+
+/* ── 인쇄 ── */
+@media print {
+  html, body { height: auto; overflow: visible !important; background: #fff !important; color: #000; }
+  body > *:not(#print-area) { display: none !important; }
+  #print-area { display: block !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+.print-page { width: 210mm; height: 297mm; position: relative; overflow: hidden; page-break-after: always; break-after: page; background: #fff; }
+.print-page:last-child { page-break-after: auto; break-after: auto; }
+.print-page.cards { padding: 11mm 15mm; display: grid; grid-template-columns: repeat(2, 90mm); grid-auto-rows: 55mm; align-content: start; }
+.print-page.cards .qcard { outline: .2mm dashed #c4c9d4; }
+.print-page.stickers { padding: 8.5mm 6mm; display: grid; grid-template-columns: repeat(3, 66mm); grid-auto-rows: 35mm; align-content: start; }
+.print-page.stickers .slot { display: grid; place-items: center; outline: .2mm dashed #e1e4ea; }
+.print-page.stickers .qsticker { width: 63mm; height: 33mm; border: 0; }
+.print-sheet { width: 297mm; padding: 10mm 10mm; background: #fff; color: #111; font-family: "Malgun Gothic", "맑은 고딕", sans-serif; }
+.print-sheet h1 { font-size: 6mm; margin: 0 0 1mm; }
+.print-sheet p { font-size: 3mm; color: #555; margin: 0 0 3mm; }
+.print-sheet table { border-collapse: collapse; width: 100%; font-size: 2.9mm; }
+.print-sheet th, .print-sheet td { border: .2mm solid #9aa3b5; padding: 1.1mm .8mm; text-align: center; white-space: nowrap; }
+.print-sheet th { background: #e3e8f4; font-size: 2.6mm; }
+.print-sheet td.n { text-align: left; font-weight: 700; padding-left: 1.6mm; }
+.print-sheet .p { background: #dcf5e7; } .print-sheet .l { background: #fff0c4; } .print-sheet .e { background: #ffe2cc; }
+.print-sheet .a { background: #fbd6dd; color: #a3112f; font-weight: 700; } .print-sheet .a.auto { background: #fdeef1; color: #b85b6c; font-weight: 400; } .print-sheet .x { background: #e8defc; }
+.print-sheet tfoot td { background: #f1f3f8; font-weight: 700; }
+
+/* ── 하루 2회차 ── */
+.rule-line { font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
+.rule-line:empty { display: none; }
+.stu .nm-row { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-width: 0; }
+.dots { display: inline-flex; gap: 2px; flex: none; }
+.dots i { font-style: normal; font-size: 9.5px; font-weight: 800; min-width: 16px; height: 15px; padding: 0 2px; border-radius: 4px; display: grid; place-items: center; background: var(--surface-3); color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.dots i.sel { outline: 1.5px solid var(--cyan); outline-offset: -1px; }
+.dots i.p { background: rgba(61, 220, 151, .25); color: var(--p); } .dots i.l { background: rgba(255, 207, 92, .25); color: var(--l); }
+.dots i.e { background: rgba(255, 159, 92, .25); color: var(--e); } .dots i.a { background: rgba(255, 92, 122, .22); color: var(--a); } .dots i.x { background: rgba(180, 155, 255, .25); color: var(--x); }
+.sheet thead th.day { padding: 6px 6px 4px; border-bottom-color: var(--border-2); }
+.sheet thead th.part { padding: 5px 4px; font-size: 12px; }
+.sheet thead th.day, .sheet thead th.part, .sheet td.dstart { border-left: 1px solid var(--border-2); }
+.sheet .cell { min-width: 62px; }
+.edit tr.dstart td { border-top: 1px solid var(--border-2); }
+.edit small.part { color: var(--text-dim); font-size: 12px; }
+
+/* ── 처음 한 번: 명단 불러오기 ── */
+.setup { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 20px; background: rgba(4, 5, 10, .94); backdrop-filter: blur(6px); }
+.setup[hidden] { display: none; }
+.setup-card { max-width: 560px; text-align: center; background: var(--surface); border: 1px solid var(--border-2); border-radius: 22px; padding: 30px 28px 24px; box-shadow: 0 30px 80px rgba(0, 0, 0, .5); }
+.setup-card h2 { margin: 8px 0 10px; font-size: 24px; }
+.setup-card p { color: var(--text-dim); margin: 0 0 20px; }
+.setup-card p b { color: var(--text); word-break: break-all; }
+.setup-card .setup-tip { margin: 16px 0 0; font-size: 13px; }
+
+/* ── 갤럭시 탭 ── */
+@media (max-width: 860px) {
+  .cam-box { aspect-ratio: auto; height: min(56vh, 76vw); }
+  .roster { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .scan-layout { padding: 12px; gap: 12px; }
+}
+@media (max-width: 520px) { .roster { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (pointer: coarse) {
+  .stu { padding: 8px 10px; }
+  .tabs button { padding: 10px 14px; }
+  .btn.sm { padding: 8px 12px; }
+}
+</style>
+<style id="pageStyle">@page { size: A4 portrait; margin: 0; }</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<header class="top">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <div class="brand-text"><b id="appTitle">과학 방과후학교</b><small>QR 출석체크</small></div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="scan" class="on"><span class="ti">📷</span>출석 체크</button>
+    <button data-tab="sheet"><span class="ti">📋</span>출석부</button>
+    <button data-tab="cards"><span class="ti">🪪</span>QR 카드</button>
+    <button data-tab="settings"><span class="ti">⚙️</span>설정</button>
+    <button data-tab="help"><span class="ti">❔</span>사용 방법</button>
+  </nav>
+  <div class="top-right">
+    <span id="saveBadge" class="save-badge" title="출석 기록은 이 컴퓨터의 브라우저에 자동으로 저장됩니다">● 자동 저장</span>
+    <button id="fsBtn" class="icon-btn" title="전체 화면 (F11)">⛶</button>
+  </div>
+</header>
+
+<main>
+  <!-- ───────── 출석 체크 ───────── -->
+  <section id="tab-scan" class="tab on">
+    <div class="scan-layout">
+      <div class="cam-col">
+        <div class="cam-box" id="camBox">
+          <video id="video" playsinline muted></video>
+          <canvas id="overlay"></canvas>
+          <div class="cam-frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div class="cam-hint" id="camHint">QR 카드를 네모 안에 보여 주세요</div>
+          <div class="mode-badge" id="modeBadge"></div>
+          <div class="cam-start" id="camStart">
+            <div class="cam-start-inner">
+              <div class="big-icon">📷</div>
+              <h2>출석 체크를 시작할까요?</h2>
+              <p>버튼을 누르면 카메라가 켜집니다.<br>처음 한 번은 브라우저가 <b>카메라 사용 허용</b>을 물어봐요 → <b>허용</b>을 눌러 주세요.</p>
+              <button class="btn primary xl" id="startBtn">▶ 출석 체크 시작</button>
+              <p class="cam-msg" id="camMsg"></p>
+            </div>
+          </div>
+          <div class="result" id="result" aria-live="assertive"></div>
+        </div>
+        <div class="cam-bar">
+          <span id="camState" class="cam-state">카메라 꺼짐</span>
+          <span class="grow"></span>
+          <label class="tgl"><input type="checkbox" id="tglSound"><span></span>효과음</label>
+          <label class="tgl"><input type="checkbox" id="tglVoice"><span></span>이름 읽어 주기</label>
+          <button class="btn ghost sm" id="camSwitch" title="카메라가 여러 개면 다음 카메라로 바꿉니다">🔄 카메라 바꾸기</button>
+          <button class="btn ghost sm" id="camStop">⏹ 끄기</button>
+        </div>
+        <div class="recent" id="recent"><span class="recent-label">방금 체크</span><span class="recent-empty">아직 없음</span></div>
+      </div>
+
+      <aside class="side">
+        <div class="sess-card">
+          <label class="sess-pick"><select id="sessSelect" title="기록할 회차"></select></label>
+          <div class="sess-meta"><span id="sessTime"></span><span id="sessNote"></span></div>
+          <div class="clock" id="clock">--:--:--</div>
+          <div class="phase" id="phase"></div>
+          <div class="rule-line" id="ruleLine"></div>
+          <div class="counts" id="counts"></div>
+          <div class="bar"><i class="p"></i><i class="l"></i><i class="e"></i><i class="x"></i></div>
+        </div>
+        <div class="roster-head"><b>참여 학생</b><small>카드를 안 가져온 학생은 이름을 눌러 직접 체크</small></div>
+        <div class="roster" id="roster"></div>
+        <div class="side-foot">
+          <button class="btn" id="closeBtn">✅ 오늘 출석 마감</button>
+          <button class="btn ghost" id="xlsxBtn2">⬇ 엑셀 저장</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ───────── 출석부 ───────── -->
+  <section id="tab-sheet" class="tab">
+    <div class="page-head">
+      <div>
+        <h1>출석부</h1>
+        <p class="sub" id="sheetSub"></p>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="xlsxBtn">⬇ 엑셀 파일로 저장</button>
+        <button class="btn" id="printSheetBtn">🖨 인쇄</button>
+      </div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="sheet-wrap"><table class="sheet" id="sheet"></table></div>
+    <p class="foot-note">칸을 누르면 출석·지각·조퇴·결석·공결을 바꿀 수 있어요. 흐린 <b>결석</b>은 체크 기록 없이 끝난 회차입니다. 참여율 = (출석+지각+조퇴) ÷ (진행된 회차 − 공결)</p>
+  </section>
+
+  <!-- ───────── QR 카드 ───────── -->
+  <section id="tab-cards" class="tab">
+    <div class="page-head">
+      <div>
+        <h1>QR 출석 카드</h1>
+        <p class="sub">학생마다 하나씩 나눠 줄 카드입니다. 카드를 카메라에 보여 주면 출석이 체크돼요.</p>
+      </div>
+      <div class="actions">
+        <div class="seg" id="cardLayout">
+          <button data-layout="card" class="on">카드형 · A4에 10장</button>
+          <button data-layout="sticker">스티커형 · A4에 24장</button>
+        </div>
+        <button class="btn primary" id="printCardsBtn">🖨 인쇄하기</button>
+      </div>
+    </div>
+    <div class="card-tools">
+      <button class="btn ghost sm" id="cardAll">모두 선택</button>
+      <button class="btn ghost sm" id="cardNone">모두 해제</button>
+      <span class="sub" id="cardCount"></span>
+    </div>
+    <div class="tip">
+      <b>인쇄 팁</b> · 인쇄 창에서 <b>배율 100%(실제 크기)</b>, <b>배경 그래픽 켜기</b>를 확인하세요. 두꺼운 종이(150g 이상)에 뽑아 코팅하면 오래 씁니다.
+      <b>스티커형</b>은 A4 전지 라벨지에 뽑아 문제집 표지에 붙여 두면 카드를 잃어버릴 일이 없어요. 잃어버린 학생만 골라서 다시 인쇄할 수도 있습니다.
+    </div>
+    <div class="card-preview" id="cardPreview"></div>
+  </section>
+
+  <!-- ───────── 설정 ───────── -->
+  <section id="tab-settings" class="tab">
+    <div class="page-head"><div><h1>설정</h1><p class="sub">바꾼 내용은 바로 저장됩니다.</p></div></div>
+    <div class="set-grid">
+      <div class="panel">
+        <h2>출석 규칙</h2>
+        <label class="field"><span>출석 체크 시작</span>
+          <select id="setOpen">
+            <option value="10">첫 회차 10분 전부터</option><option value="20">첫 회차 20분 전부터</option><option value="30">첫 회차 30분 전부터</option>
+            <option value="60">첫 회차 1시간 전부터</option><option value="1440">하루 종일</option>
+          </select></label>
+        <label class="field"><span>QR을 한 번 찍으면</span>
+          <select id="setScanMode">
+            <option value="day">그날 남은 회차까지 함께 기록 (하루 한 번만 찍기)</option>
+            <option value="each">지금 회차만 기록 (회차마다 다시 찍기)</option>
+          </select></label>
+        <label class="field"><span>지각 기준</span>
+          <select id="setGrace">
+            <option value="0">시작 시각이 지나면 지각</option><option value="3">시작 후 3분까지는 출석</option>
+            <option value="5">시작 후 5분까지는 출석</option><option value="10">시작 후 10분까지는 출석</option>
+          </select></label>
+        <p class="hint" id="ruleExample"></p>
+      </div>
+      <div class="panel">
+        <h2>카메라 · 소리</h2>
+        <label class="field"><span>사용할 카메라</span><select id="setCamera"><option value="">기본 카메라</option></select></label>
+        <label class="tgl block"><input type="checkbox" id="setMirror"><span></span>카메라 화면을 거울처럼 보이기 (QR 맞추기 쉬움)</label>
+        <label class="tgl block"><input type="checkbox" id="setSound"><span></span>체크할 때 효과음</label>
+        <label class="tgl block"><input type="checkbox" id="setVoice"><span></span>체크할 때 이름 읽어 주기 (예: "홍길동, 출석")</label>
+        <button class="btn ghost sm" id="testSound">🔊 소리 시험</button>
+      </div>
+      <div class="panel">
+        <h2>이름 표시</h2>
+        <label class="field"><span>방과후 이름</span><input id="setTitle" maxlength="30"></label>
+        <label class="field"><span>학기</span><input id="setTerm" maxlength="30"></label>
+        <p class="hint">출석부·엑셀·카드 위쪽에 들어갑니다.</p>
+      </div>
+      <div class="panel wide">
+        <h2>학생 명단 <small id="stuCount"></small></h2>
+        <p class="hint">이름·반·번호를 고쳐도 <b>카드 코드는 그대로</b>라서 이미 나눠 준 카드를 계속 쓸 수 있어요. 새로 추가한 학생은 QR 카드 탭에서 그 학생 카드만 인쇄하세요.</p>
+        <div class="tbl-wrap"><table class="edit" id="stuTable"></table></div>
+        <form class="add-row" id="stuAdd">
+          <input type="number" min="1" max="6" value="2" id="addG" title="학년" aria-label="학년"><span>학년</span>
+          <input type="number" min="1" max="20" id="addC" placeholder="반" required aria-label="반"><span>반</span>
+          <input type="number" min="1" max="60" id="addN" placeholder="번호" required aria-label="번호"><span>번</span>
+          <input id="addName" placeholder="이름" maxlength="20" required aria-label="이름">
+          <button class="btn primary sm">+ 학생 추가</button>
+        </form>
+      </div>
+      <div class="panel wide">
+        <h2>수업 회차 <small id="sessCount"></small></h2>
+        <p class="hint">하루 수업 시간을 반으로 나눠 <b>2회차씩</b> 진행합니다. 휴강·보강이 생기면 여기서 회차를 지우거나 날짜를 더하세요. 시간을 바꾸면 그 회차의 지각 기준도 함께 바뀝니다.</p>
+        <div class="tbl-wrap"><table class="edit" id="sessTable"></table></div>
+        <form class="add-row" id="sessAdd">
+          <input type="date" id="addDate" required aria-label="날짜">
+          <input type="time" id="addStart" value="15:30" required aria-label="시작"><span>~</span>
+          <input type="time" id="addEnd" value="17:30" required aria-label="끝">
+          <input id="addNote" placeholder="메모 (예: 보강)" maxlength="40" aria-label="메모">
+          <label class="tgl"><input type="checkbox" id="addSplit" checked><span></span>반으로 나눠 2회차로</label>
+          <button class="btn primary sm">+ 날짜 추가</button>
+        </form>
+      </div>
+      <div class="panel wide">
+        <h2>자료 관리</h2>
+        <p class="hint">출석 기록은 <b>이 기기(태블릿·컴퓨터)의 이 브라우저</b>에 자동 저장됩니다. 다른 기기로 옮길 때는 백업 파일을 저장해 가져가서 <b>백업 불러오기</b>를 누르세요. 수업이 끝날 때마다 엑셀이나 백업으로 한 번씩 저장해 두면 안전합니다.</p>
+        <p class="hint"><b>명단 파일</b>은 이름·반·번호·카드 코드·회차만 담은 파일입니다(출석 기록 없음). 학생이나 회차를 바꾼 뒤 <b>태블릿용 명단 파일 저장</b> → 태블릿에서 <b>명단 파일 불러오기</b>를 하면, 태블릿의 출석 기록은 그대로 두고 명단만 바뀝니다.</p>
+        <div class="btn-row">
+          <button class="btn" id="backupBtn">💾 백업 파일 저장</button>
+          <button class="btn" id="restoreBtn">📂 백업 불러오기</button>
+          <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+          <button class="btn" id="rosterExportBtn">📋 태블릿용 명단 파일 저장</button>
+          <button class="btn" id="rosterImportBtn">📋 명단 파일 불러오기</button>
+          <input type="file" id="rosterFile" accept=".json,application/json" hidden>
+          <span class="grow"></span>
+          <button class="btn danger-ghost" id="clearRecords">출석 기록 모두 지우기</button>
+          <button class="btn danger-ghost" id="resetAll">처음 상태로 되돌리기</button>
+        </div>
+        <p class="hint" id="storeInfo"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 사용 방법 ───────── -->
+  <section id="tab-help" class="tab">
+    <div class="help">
+      <h1>사용 방법</h1>
+      <p class="sub">갤럭시 탭에서 씁니다. 학생 이름과 출석 기록은 태블릿 안에만 저장되고 인터넷으로 보내지 않아요.</p>
+
+      <div class="steps">
+        <div class="step"><b>0</b><div><h3>태블릿 준비 (처음 한 번)</h3>
+          <p>갤럭시 탭 <b>Chrome</b>에서 <b class="tnum" id="webUrl"></b> 를 엽니다 → <b>명단 파일 고르기</b>로 구글 드라이브의 출석명단 파일 선택 → Chrome 오른쪽 위 <b>⋮ 메뉴 → 홈 화면에 추가(앱 설치)</b>. 다음부터는 홈 화면 아이콘으로 열면 전체 화면으로 뜨고, 와이파이가 잠깐 끊겨도 열립니다.</p></div></div>
+        <div class="step"><b>1</b><div><h3>카드 인쇄 · 나눠 주기 (첫 수업 전)</h3>
+          <p>컴퓨터에서 받은 <b>QR 출석카드 PDF</b>를 인쇄하세요(이 프로그램의 <b>QR 카드</b> 탭에서도 인쇄 가능). 카드를 잘라 학생에게 나눠 주세요. 방과후 시간에 늘 가져오도록 문제집 사이에 끼워 두거나, 스티커형으로 뽑아 <b>문제집 표지에 붙여 두면</b> 잃어버리지 않습니다.</p></div></div>
+        <div class="step"><b>2</b><div><h3>수업 날 — 태블릿 세워 두고 시작</h3>
+          <p>홈 화면의 <b>QR 출석</b> 아이콘을 누르세요. 오늘이 수업일이면 지금 회차가 자동으로 골라져 있고, 1부가 끝나면 2부로 저절로 넘어가요. 태블릿을 교탁이나 교실 입구에 세워 <b>앞 카메라가 학생 쪽</b>을 보게 두고 <b>▶ 출석 체크 시작</b>. 학생이 다 들어오면 다른 앱으로 넘어가 수업에 써도 기록은 그대로 남아요.</p></div></div>
+        <div class="step"><b>3</b><div><h3>학생은 카드를 카메라에 보여 주기만</h3>
+          <p>카메라에서 20~40cm 떨어져 카드를 정면으로 보여 주면 "딩동" 소리와 함께 이름이 크게 뜹니다. <b>회차 시작 시각까지는 출석</b>, 그 뒤는 <b>지각</b>으로 기록돼요. 하루 2회차라도 <b>처음에 한 번만 찍으면</b> 그날 두 회차가 함께 기록됩니다(설정에서 '회차마다 다시 찍기'로 바꿀 수 있어요). 2부 중간에 간 학생은 명단을 눌러 <b>조퇴</b>로 바꾸세요. 같은 카드를 또 보여 주면 "이미 출석"이라고만 나오고 기록은 바뀌지 않습니다. 두 명이 동시에 보여 줘도 둘 다 읽어요.</p></div></div>
+        <div class="step"><b>4</b><div><h3>카드를 안 가져온 학생</h3>
+          <p>명단에서 이름을 누르면 <b>출석·지각·조퇴·결석·공결</b>을 직접 고를 수 있어요. 잘못 찍힌 기록도 같은 방법으로 고칩니다.</p></div></div>
+        <div class="step"><b>5</b><div><h3>수업 끝 — 마감과 저장</h3>
+          <p><b>오늘 출석 마감</b>을 누르면 그날 두 회차에서 체크하지 않은 학생이 결석으로 표시됩니다(누르지 않아도 회차 끝 시각이 지나면 자동으로 결석 표시). 이어서 <b>엑셀 저장</b>을 누르면 태블릿의 <b>다운로드</b> 폴더(내 파일 → 다운로드)에 출석부가 저장돼요. 구글 드라이브에 올려 두면 컴퓨터에서도 볼 수 있습니다. 전체 현황은 <b>출석부</b> 탭에서 보고 인쇄할 수 있습니다.</p></div></div>
+      </div>
+
+      <h2>정해 둔 일정</h2>
+      <div class="help-sched" id="helpSched"></div>
+
+      <h2>자주 묻는 질문</h2>
+      <details><summary>카메라가 안 켜져요</summary>
+        <ul>
+          <li>처음에 "카메라 사용을 허용할까요?"가 나오면 <b>허용</b>(또는 '앱 사용 중에만 허용')을 누르세요.</li>
+          <li>거부했다면: Chrome 주소창 왼쪽 아이콘(홈 화면 앱이면 ⋮ 메뉴 → 사이트 설정) → <b>권한 → 카메라 → 허용</b> 후 다시 여세요.</li>
+          <li>카메라 앱·줌 같은 다른 앱이 카메라를 쓰고 있으면 켜지지 않습니다. 그 앱을 닫아 주세요.</li>
+          <li>뒤 카메라가 켜졌다면 <b>카메라 바꾸기</b>를 눌러 앞 카메라로 바꾸세요.</li>
+          <li>카메라를 끝내 쓸 수 없을 때도 명단에서 이름을 눌러 출석을 기록할 수 있어요.</li>
+        </ul></details>
+      <details><summary>QR이 잘 안 읽혀요</summary>
+        <ul>
+          <li>카드를 너무 가까이(10cm 안) 대지 말고 20~40cm 정도에서 정면으로 보여 주세요. 화면 속 네모 안에 들어오면 됩니다.</li>
+          <li>코팅한 카드는 형광등 빛이 반사되면 안 읽힐 수 있어요. 카드를 살짝 기울여 반사를 피하세요.</li>
+          <li>카드가 구겨지거나 젖었다면 QR 카드 탭에서 그 학생 것만 다시 인쇄하세요.</li>
+        </ul></details>
+      <details><summary>오늘이 수업일이 아닌데 시험해 보고 싶어요</summary>
+        <p>수업일이 아닐 때나 출석 체크 시간이 열리기 전에는 <b>연습 모드</b>로 동작합니다. 카드를 보여 주면 이름은 뜨지만 기록은 남지 않아요. 카드를 뽑은 뒤 미리 한 번씩 시험해 보세요.</p></details>
+      <details><summary>기록은 어디에 저장되나요? 다른 기기로 옮기려면?</summary>
+        <p>출석 기록은 <b>이 태블릿의 Chrome</b> 안에만 저장됩니다(인터넷 주소에는 프로그램만 있고 이름·기록은 없음). Chrome의 '인터넷 사용 기록 삭제'에서 <b>쿠키 및 사이트 데이터</b>를 지우면 기록도 지워지니 주의하세요. 다른 기기로 옮기려면 설정 → <b>백업 파일 저장</b> → 구글 드라이브에 올림 → 다른 기기에서 <b>백업 불러오기</b>.</p></details>
+      <details><summary>학생이 바뀌거나 날짜가 바뀌었어요</summary>
+        <p>설정 탭에서 학생과 수업 회차를 더하거나 지울 수 있습니다(태블릿에서 바로 고쳐도 됩니다). 날짜를 더할 때 "반으로 나눠 2회차로"를 켜 두면 하루가 두 회차로 들어가요. 새 학생은 QR 카드 탭에서 그 학생 카드만 골라 인쇄하세요. 회차를 지우면 그 회차의 출석 기록도 함께 지워집니다.</p></details>
+      <details><summary>USB 바코드 리더기도 쓸 수 있나요?</summary>
+        <p>네. QR을 읽을 수 있는 리더기를 꽂고 이 화면을 연 상태에서 카드를 찍으면 카메라와 똑같이 출석이 기록됩니다. 카드 아래 적힌 코드(예: AS26-ABCD)를 키보드로 치고 Enter를 눌러도 됩니다.</p></details>
+      <p class="ver">버전 <span id="verText"></span></p>
+    </div>
+  </section>
+</main>
+
+<div class="setup" id="setup" hidden>
+  <div class="setup-card">
+    <div class="big-icon">📋</div>
+    <h2>처음 한 번만: 명단 불러오기</h2>
+    <p>이 주소에는 학생 이름이 들어 있지 않아요.<br>구글 드라이브의 <b>2학년_과학방과후_출석명단_태블릿용.json</b> 파일을 골라 주세요.<br>이름과 출석 기록은 <b>이 태블릿 안에만</b> 저장됩니다.</p>
+    <button class="btn primary xl" id="setupPick">📂 명단 파일 고르기</button>
+    <input type="file" id="setupFile" accept=".json,application/json" hidden>
+    <p class="cam-msg" id="setupMsg"></p>
+    <p class="setup-tip">파일 고르는 창에서 왼쪽 위 ☰ 메뉴 → <b>Drive(구글 드라이브)</b> → 클로드 폴더</p>
+  </div>
+</div>
+<div id="print-area"></div>
+<div id="toast" role="status"></div>
+<div id="pop" class="pop" hidden></div>
+<dialog id="dialog">
+  <h3 id="dialogTitle"></h3>
+  <div id="dialogBody"></div>
+  <div class="dialog-btns"><button class="btn ghost" id="dialogNo">취소</button><button class="btn primary" id="dialogOk">확인</button></div>
+</dialog>
+<script>(function () {
+'use strict';
+
+/* ===== 00-util.js ===== */
+/* 공용 도구 */
+const APP_VERSION = '1.2';
+// 태블릿용 웹 버전(https 주소)으로 만들 때 true — 명단을 빼고, 첫 화면에서 명단 파일을 불러옵니다
+const WEB_BUILD = true;
+const WEB_URL = 'https://castletrue27-ctrl.github.io/qr-attendance/';
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const pad2 = n => String(n).padStart(2, '0');
+const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+
+// 'YYYY-MM-DD' ↔ Date (그 나라 시각 기준 0시)
+const parseDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const dateKey = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const fmtDate = (s, long) => { const d = parseDate(s); return long ? `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEK[d.getDay()]})` : `${d.getMonth() + 1}.${pad2(d.getDate())}(${WEEK[d.getDay()]})`; };
+const toMin = hhmm => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+const fromMin = m => `${pad2(Math.floor(m / 60) % 24)}:${pad2(m % 60)}`;
+const clock = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+
+// 시험할 때 시계를 바꿀 수 있게 현재 시각은 한곳에서만 얻습니다
+let clockOffset = 0;
+const now = () => new Date(Date.now() + clockOffset);
+
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'html') el.innerHTML = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'dataset') Object.assign(el.dataset, v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : String(kid));
+  return el;
+}
+
+function download(name, blob) {
+  const a = h('a', { href: URL.createObjectURL(blob), download: name });
+  document.body.append(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+
+let toastTimer = 0;
+function toast(msg, kind) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'show' + (kind ? ' ' + kind : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = ''; }, 2600);
+}
+
+// 확인 창 (window.confirm 대신 — 전체 화면에서도 보이도록)
+function ask(title, body, okLabel = '확인', danger = false) {
+  return new Promise(resolve => {
+    const box = $('#dialog');
+    $('#dialogTitle', box).textContent = title;
+    $('#dialogBody', box).innerHTML = body;
+    const ok = $('#dialogOk', box), no = $('#dialogNo', box);
+    ok.textContent = okLabel;
+    ok.className = 'btn ' + (danger ? 'danger' : 'primary');
+    const done = v => { box.close(); ok.onclick = no.onclick = null; resolve(v); };
+    ok.onclick = () => done(true);
+    no.onclick = () => done(false);
+    box.oncancel = e => { e.preventDefault(); done(false); };
+    box.showModal();
+  });
+}
+
+
+/* ===== 10-qr-encode.js ===== */
+/* QR 코드 만들기 (국제 표준 ISO/IEC 18004, 버전 1~10)
+   출석 카드에 인쇄할 QR을 프로그램이 직접 그립니다. 인터넷이나 외부 라이브러리를 쓰지 않습니다. */
+
+// GF(256) 계산 — 리드-솔로몬 오류 정정에 씁니다 (만들기·읽기 공용)
+const GF = (() => {
+  const exp = new Uint8Array(512), log = new Uint8Array(256);
+  for (let i = 0, x = 1; i < 255; i++) { exp[i] = x; log[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11D; }
+  for (let i = 255; i < 512; i++) exp[i] = exp[i - 255];
+  const mul = (a, b) => (a && b ? exp[log[a] + log[b]] : 0);
+  const div = (a, b) => { if (!b) throw new Error('GF: 0으로 나눔'); return a ? exp[(log[a] + 255 - log[b]) % 255] : 0; };
+  const pow = (a, e) => (e === 0 ? 1 : a ? exp[(log[a] * e) % 255] : 0);
+  return { exp, log, mul, div, pow };
+})();
+
+const QR = (() => {
+  const MAX_VER = 10;
+  const ECL_INDEX = { L: 0, M: 1, Q: 2, H: 3 };
+  const ECL_FORMAT = [1, 0, 3, 2];
+  // [오류정정 수준][버전] → 블록당 오류정정 코드워드 수, 블록 수
+  const ECC_PER_BLOCK = [
+    [0, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18],
+    [0, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26],
+    [0, 13, 22, 18, 26, 18, 24, 18, 22, 20, 24],
+    [0, 17, 28, 22, 16, 22, 28, 26, 26, 24, 28]
+  ];
+  const NUM_BLOCKS = [
+    [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4],
+    [0, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5],
+    [0, 1, 1, 2, 2, 4, 4, 6, 6, 8, 8],
+    [0, 1, 1, 2, 4, 4, 4, 5, 6, 8, 8]
+  ];
+  const ALNUM = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
+  const MASKS = [
+    (x, y) => (x + y) % 2 === 0,
+    (x, y) => y % 2 === 0,
+    (x, y) => x % 3 === 0,
+    (x, y) => (x + y) % 3 === 0,
+    (x, y) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0,
+    (x, y) => ((x * y) % 2) + ((x * y) % 3) === 0,
+    (x, y) => (((x * y) % 2) + ((x * y) % 3)) % 2 === 0,
+    (x, y) => (((x + y) % 2) + ((x * y) % 3)) % 2 === 0
+  ];
+
+  function numRawModules(v) {
+    let r = (16 * v + 128) * v + 64;
+    if (v >= 2) {
+      const n = Math.floor(v / 7) + 2;
+      r -= (25 * n - 10) * n - 55;
+      if (v >= 7) r -= 36;
+    }
+    return r;
+  }
+  const numCodewords = v => numRawModules(v) >> 3;
+  const numDataCodewords = (v, e) => numCodewords(v) - ECC_PER_BLOCK[e][v] * NUM_BLOCKS[e][v];
+
+  function alignPositions(v) {
+    if (v === 1) return [];
+    const n = Math.floor(v / 7) + 2, step = Math.ceil((v * 4 + 4) / (n * 2 - 2)) * 2, r = [6];
+    for (let p = v * 4 + 10; r.length < n; p -= step) r.splice(1, 0, p);
+    return r;
+  }
+
+  // 형식 정보(오류정정 수준 + 마스크) 15비트
+  function formatBits(e, mask) {
+    const data = (ECL_FORMAT[e] << 3) | mask;
+    let rem = data;
+    for (let i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+    return ((data << 10) | rem) ^ 0x5412;
+  }
+  // 형식 정보가 놓이는 자리 [x, y] — 비트 0부터 차례로, 같은 내용이 두 군데에 들어갑니다
+  function formatPositions(size) {
+    const a = [], b = [];
+    for (let i = 0; i <= 5; i++) a.push([8, i]);
+    a.push([8, 7], [8, 8], [7, 8]);
+    for (let i = 9; i < 15; i++) a.push([14 - i, 8]);
+    for (let i = 0; i < 8; i++) b.push([size - 1 - i, 8]);
+    for (let i = 8; i < 15; i++) b.push([8, size - 15 + i]);
+    return [a, b];
+  }
+  function versionBits(v) {
+    let rem = v;
+    for (let i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >>> 11) * 0x1F25);
+    return (v << 12) | rem;
+  }
+
+  // 버전별 고정 무늬(위치 찾기·정렬·타이밍·형식 자리)를 그린 바탕판
+  function makeGrid(v) {
+    const size = v * 4 + 17, mod = new Uint8Array(size * size), fn = new Uint8Array(size * size);
+    const set = (x, y, dark) => { mod[y * size + x] = dark ? 1 : 0; fn[y * size + x] = 1; };
+    for (let i = 0; i < size; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+    const finder = (cx, cy) => {
+      for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+        const x = cx + dx, y = cy + dy;
+        if (x < 0 || x >= size || y < 0 || y >= size) continue;
+        const d = Math.max(Math.abs(dx), Math.abs(dy));
+        set(x, y, d !== 2 && d !== 4);
+      }
+    };
+    finder(3, 3); finder(size - 4, 3); finder(3, size - 4);
+    const ap = alignPositions(v), n = ap.length;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      if ((i === 0 && j === 0) || (i === 0 && j === n - 1) || (i === n - 1 && j === 0)) continue;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(ap[i] + dx, ap[j] + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+    }
+    for (const ps of formatPositions(size)) for (const [x, y] of ps) set(x, y, false);
+    set(8, size - 8, true);
+    if (v >= 7) {
+      const bits = versionBits(v);
+      for (let i = 0; i < 18; i++) {
+        const dark = (bits >>> i) & 1, a = size - 11 + (i % 3), b = Math.floor(i / 3);
+        set(a, b, dark); set(b, a, dark);
+      }
+    }
+    return { size, mod, fn };
+  }
+
+  // 데이터가 지그재그로 놓이는 순서(칸 번호 목록)
+  function dataPositions(size, fn) {
+    const out = [];
+    for (let right = size - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      const upward = ((right + 1) & 2) === 0;
+      for (let vert = 0; vert < size; vert++) for (let j = 0; j < 2; j++) {
+        const x = right - j, y = upward ? size - 1 - vert : vert;
+        if (!fn[y * size + x]) out.push(y * size + x);
+      }
+    }
+    return out;
+  }
+
+  function rsDivisor(degree) {
+    const r = new Array(degree).fill(0);
+    r[degree - 1] = 1;
+    let root = 1;
+    for (let i = 0; i < degree; i++) {
+      for (let j = 0; j < r.length; j++) { r[j] = GF.mul(r[j], root); if (j + 1 < r.length) r[j] ^= r[j + 1]; }
+      root = GF.mul(root, 2);
+    }
+    return r;
+  }
+  function rsRemainder(data, div) {
+    const r = div.map(() => 0);
+    for (const b of data) {
+      const f = b ^ r.shift();
+      r.push(0);
+      div.forEach((c, i) => { r[i] ^= GF.mul(c, f); });
+    }
+    return r;
+  }
+  // 데이터 코드워드 → 블록마다 오류정정 코드워드를 붙이고 섞어 배치 순서로
+  function addEcc(data, v, e) {
+    const nb = NUM_BLOCKS[e][v], ecLen = ECC_PER_BLOCK[e][v], raw = numCodewords(v);
+    const numShort = nb - (raw % nb), shortLen = Math.floor(raw / nb), div = rsDivisor(ecLen), blocks = [];
+    for (let i = 0, k = 0; i < nb; i++) {
+      const dat = data.slice(k, k + shortLen - ecLen + (i < numShort ? 0 : 1));
+      k += dat.length;
+      const ecc = rsRemainder(dat, div);
+      if (i < numShort) dat.push(0);
+      blocks.push(dat.concat(ecc));
+    }
+    const out = [];
+    for (let i = 0; i < blocks[0].length; i++) blocks.forEach((b, j) => { if (i !== shortLen - ecLen || j >= numShort) out.push(b[i]); });
+    return out;
+  }
+
+  const utf8 = s => Array.from(new TextEncoder().encode(s));
+  function segmentOf(text) {
+    if (/^[0-9]*$/.test(text)) return { mode: 1, count: text.length, text };
+    if ([...text].every(c => ALNUM.includes(c))) return { mode: 2, count: text.length, text };
+    const bytes = utf8(text);
+    return { mode: 4, count: bytes.length, bytes };
+  }
+  const CC_BITS = { 1: [10, 12, 14], 2: [9, 11, 13], 4: [8, 16, 16] };
+  const ccIndex = v => (v <= 9 ? 0 : v <= 26 ? 1 : 2);
+
+  function segmentBits(seg, v) {
+    const bits = [], push = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+    push(seg.mode, 4);
+    push(seg.count, CC_BITS[seg.mode][ccIndex(v)]);
+    if (seg.mode === 1) {
+      for (let i = 0; i < seg.text.length; i += 3) {
+        const chunk = seg.text.slice(i, i + 3);
+        push(parseInt(chunk, 10), chunk.length * 3 + 1);
+      }
+    } else if (seg.mode === 2) {
+      let i = 0;
+      for (; i + 2 <= seg.text.length; i += 2) push(ALNUM.indexOf(seg.text[i]) * 45 + ALNUM.indexOf(seg.text[i + 1]), 11);
+      if (i < seg.text.length) push(ALNUM.indexOf(seg.text[i]), 6);
+    } else {
+      for (const b of seg.bytes) push(b, 8);
+    }
+    return bits;
+  }
+
+  function toCodewords(bits, v, e) {
+    const cap = numDataCodewords(v, e) * 8, b = bits.slice();
+    for (let i = 0; i < 4 && b.length < cap; i++) b.push(0);
+    while (b.length % 8) b.push(0);
+    const out = [];
+    for (let i = 0; i < b.length; i += 8) { let x = 0; for (let j = 0; j < 8; j++) x = (x << 1) | b[i + j]; out.push(x); }
+    for (let pad = 0xEC; out.length < cap / 8; pad ^= 0xEC ^ 0x11) out.push(pad);
+    return out;
+  }
+
+  function penalty(m, size) {
+    let p = 0;
+    const at = (horiz, a, b) => (horiz ? m[a * size + b] : m[b * size + a]);
+    const P1 = [1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0], P2 = [0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1];
+    for (const horiz of [true, false]) for (let a = 0; a < size; a++) {
+      let run = 1;
+      for (let b = 1; b < size; b++) {
+        if (at(horiz, a, b) === at(horiz, a, b - 1)) run++;
+        else { if (run >= 5) p += run - 2; run = 1; }
+      }
+      if (run >= 5) p += run - 2;
+      for (let b = 0; b + 11 <= size; b++) {
+        let m1 = true, m2 = true;
+        for (let k = 0; k < 11 && (m1 || m2); k++) { const c = at(horiz, a, b + k); if (c !== P1[k]) m1 = false; if (c !== P2[k]) m2 = false; }
+        if (m1) p += 40;
+        if (m2) p += 40;
+      }
+    }
+    let dark = 0;
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const c = m[y * size + x];
+      dark += c;
+      if (x < size - 1 && y < size - 1 && c === m[y * size + x + 1] && c === m[(y + 1) * size + x] && c === m[(y + 1) * size + x + 1]) p += 3;
+    }
+    p += Math.floor(Math.abs((dark * 20) / (size * size) - 10)) * 10;
+    return p;
+  }
+
+  // text → { version, ecl, mask, size, modules(1=검정) }
+  function encode(text, opt = {}) {
+    let e = ECL_INDEX[opt.ecl || 'M'];
+    const seg = segmentOf(String(text));
+    let v = opt.minVersion || 1, bits = null;
+    for (; v <= (opt.maxVersion || MAX_VER); v++) {
+      if (seg.count >= 1 << CC_BITS[seg.mode][ccIndex(v)]) continue;
+      const b = segmentBits(seg, v);
+      if (b.length <= numDataCodewords(v, e) * 8) { bits = b; break; }
+    }
+    if (!bits) throw new Error('QR 코드에 담기에는 글자가 너무 깁니다');
+    if (opt.boost !== false) for (let e2 = 3; e2 > e; e2--) if (bits.length <= numDataCodewords(v, e2) * 8) { e = e2; break; }
+    const all = addEcc(toCodewords(bits, v, e), v, e);
+    const g = makeGrid(v), pos = dataPositions(g.size, g.fn);
+    for (let i = 0; i < all.length * 8; i++) g.mod[pos[i]] = (all[i >> 3] >> (7 - (i & 7))) & 1;
+    const [fa, fb] = formatPositions(g.size);
+    let best = null;
+    for (let mask = 0; mask < 8; mask++) {
+      if (opt.mask != null && opt.mask !== mask) continue;
+      const m = g.mod.slice(), f = MASKS[mask];
+      for (let y = 0; y < g.size; y++) for (let x = 0; x < g.size; x++) if (!g.fn[y * g.size + x] && f(x, y)) m[y * g.size + x] ^= 1;
+      const fbits = formatBits(e, mask);
+      for (let i = 0; i < 15; i++) { const d = (fbits >>> i) & 1; m[fa[i][1] * g.size + fa[i][0]] = d; m[fb[i][1] * g.size + fb[i][0]] = d; }
+      const pen = opt.mask != null ? 0 : penalty(m, g.size);
+      if (!best || pen < best.pen) best = { m, pen, mask };
+    }
+    return { version: v, ecl: 'LMQH'[e], mask: best.mask, size: g.size, modules: best.m };
+  }
+
+  // 인쇄용 SVG (조용한 여백 margin칸 포함)
+  function toSVG(qr, opt = {}) {
+    const margin = opt.margin == null ? 4 : opt.margin, n = qr.size + margin * 2;
+    let d = '';
+    for (let y = 0; y < qr.size; y++) {
+      let x = 0;
+      while (x < qr.size) {
+        if (!qr.modules[y * qr.size + x]) { x++; continue; }
+        let x2 = x;
+        while (x2 < qr.size && qr.modules[y * qr.size + x2]) x2++;
+        d += `M${x + margin} ${y + margin}h${x2 - x}v1h${x - x2}z`;
+        x = x2;
+      }
+    }
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges"${opt.cls ? ` class="${opt.cls}"` : ''}>` +
+      `<rect width="${n}" height="${n}" fill="${opt.light || '#fff'}"/><path d="${d}" fill="${opt.dark || '#000'}"/></svg>`;
+  }
+
+  return {
+    encode, toSVG,
+    _: { ECC_PER_BLOCK, NUM_BLOCKS, ALNUM, MASKS, MAX_VER, CC_BITS, ccIndex, numRawModules, numCodewords, numDataCodewords, alignPositions, formatBits, formatPositions, makeGrid, dataPositions, addEcc, rsDivisor, rsRemainder, segmentBits, toCodewords, segmentOf }
+  };
+})();
+
+
+/* ===== 20-qr-decode.js ===== */
+/* QR 코드 읽기 — 카메라 화면에서 QR을 찾아 글자로 바꿉니다 (외부 라이브러리 없음)
+   흑백 변환 → 모서리 위치 찾기 무늬 3개 찾기 → 격자 읽기 → 오류 정정 → 글자 해석 */
+const QRDecode = (() => {
+  const Q = QR._;
+
+  // 1) 밝기 → 흑백: 8×8 칸마다 주변 밝기에 맞춰 기준을 정합니다 (그늘·조명 차이에 강함)
+  function binarize(lum, w, h) {
+    const out = new Uint8Array(w * h), BS = 8, bw = Math.ceil(w / BS), bh = Math.ceil(h / BS);
+    if (bw < 5 || bh < 5) {
+      let s = 0;
+      for (let i = 0; i < lum.length; i++) s += lum[i];
+      const t = s / lum.length;
+      for (let i = 0; i < lum.length; i++) out[i] = lum[i] <= t ? 1 : 0;
+      return out;
+    }
+    const black = new Float32Array(bw * bh);
+    for (let by = 0; by < bh; by++) {
+      const y0 = Math.min(by * BS, h - BS);
+      for (let bx = 0; bx < bw; bx++) {
+        const x0 = Math.min(bx * BS, w - BS);
+        let sum = 0, mn = 255, mx = 0;
+        for (let y = y0; y < y0 + BS; y++) for (let x = x0, i = y * w + x0; x < x0 + BS; x++, i++) {
+          const v = lum[i]; sum += v; if (v < mn) mn = v; if (v > mx) mx = v;
+        }
+        let avg = sum / 64;
+        if (mx - mn <= 24) {
+          avg = mn / 2;
+          if (by > 0 && bx > 0) {
+            const nb = (black[(by - 1) * bw + bx] + 2 * black[by * bw + bx - 1] + black[(by - 1) * bw + bx - 1]) / 4;
+            if (mn < nb) avg = nb;
+          }
+        }
+        black[by * bw + bx] = avg;
+      }
+    }
+    for (let by = 0; by < bh; by++) {
+      const y0 = Math.min(by * BS, h - BS), cy = Math.min(Math.max(by, 2), bh - 3);
+      for (let bx = 0; bx < bw; bx++) {
+        const x0 = Math.min(bx * BS, w - BS), cx = Math.min(Math.max(bx, 2), bw - 3);
+        let s = 0;
+        for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) s += black[(cy + dy) * bw + cx + dx];
+        const t = s / 25;
+        for (let y = y0; y < y0 + BS; y++) for (let x = x0, i = y * w + x0; x < x0 + BS; x++, i++) out[i] = lum[i] <= t ? 1 : 0;
+      }
+    }
+    return out;
+  }
+
+  // 2) 위치 찾기 무늬(■ 안의 □ 안의 ■, 1:1:3:1:1) 찾기
+  function ratioOK(sc, strict) {
+    let total = 0;
+    for (let i = 0; i < 5; i++) { if (!sc[i]) return false; total += sc[i]; }
+    if (total < 7) return false;
+    const m = total / 7, v = m * (strict ? 0.5 : 0.75);
+    return Math.abs(m - sc[0]) < v && Math.abs(m - sc[1]) < v && Math.abs(3 * m - sc[2]) < 3 * v && Math.abs(m - sc[3]) < v && Math.abs(m - sc[4]) < v;
+  }
+
+  // 한 방향(세로/가로)으로 무늬를 다시 재 보고 중심을 돌려줍니다
+  function crossCheck(bits, w, h, cx, cy, vertical, maxCount, origTotal) {
+    const at = vertical ? k => bits[k * w + cx] : k => bits[cy * w + k], lim = vertical ? h : w, c0 = vertical ? cy : cx;
+    const sc = [0, 0, 0, 0, 0];
+    let k = c0;
+    while (k >= 0 && at(k)) { sc[2]++; k--; }
+    if (k < 0) return null;
+    while (k >= 0 && !at(k) && sc[1] <= maxCount) { sc[1]++; k--; }
+    if (k < 0 || sc[1] > maxCount) return null;
+    while (k >= 0 && at(k) && sc[0] <= maxCount) { sc[0]++; k--; }
+    if (sc[0] > maxCount) return null;
+    k = c0 + 1;
+    while (k < lim && at(k)) { sc[2]++; k++; }
+    if (k === lim) return null;
+    while (k < lim && !at(k) && sc[3] <= maxCount) { sc[3]++; k++; }
+    if (k === lim || sc[3] > maxCount) return null;
+    while (k < lim && at(k) && sc[4] <= maxCount) { sc[4]++; k++; }
+    if (sc[4] > maxCount) return null;
+    const total = sc[0] + sc[1] + sc[2] + sc[3] + sc[4];
+    if (5 * Math.abs(total - origTotal) >= 2 * origTotal) return null;
+    if (!ratioOK(sc, false)) return null;
+    return { c: k - sc[4] - sc[3] - sc[2] / 2, total };
+  }
+
+  function findFinders(bits, w, h) {
+    const cands = [], step = h > 500 ? 2 : 1, runs = new Int32Array(w + 1);
+    const add = (x, y, ms) => {
+      for (const c of cands) {
+        if (Math.abs(c.x - x) <= c.ms * 1.5 && Math.abs(c.y - y) <= c.ms * 1.5 && Math.abs(ms - c.ms) <= Math.max(1, c.ms * 0.5)) {
+          const n = c.count;
+          c.x = (c.x * n + x) / (n + 1); c.y = (c.y * n + y) / (n + 1); c.ms = (c.ms * n + ms) / (n + 1); c.count++;
+          return;
+        }
+      }
+      cands.push({ x, y, ms, count: 1 });
+    };
+    for (let y = 0; y < h; y += step) {
+      const row = y * w;
+      let n = 0;
+      runs[n++] = 0;
+      for (let x = 1; x < w; x++) if (bits[row + x] !== bits[row + x - 1]) runs[n++] = x;
+      runs[n] = w;
+      for (let i = 0; i + 4 < n; i++) {
+        if (!bits[row + runs[i]]) continue;
+        const sc = [runs[i + 1] - runs[i], runs[i + 2] - runs[i + 1], runs[i + 3] - runs[i + 2], runs[i + 4] - runs[i + 3], runs[i + 5] - runs[i + 4]];
+        if (!ratioOK(sc, true)) continue;
+        const total = sc[0] + sc[1] + sc[2] + sc[3] + sc[4];
+        const vc = crossCheck(bits, w, h, Math.floor(runs[i + 2] + sc[2] / 2), y, true, sc[2], total);
+        if (!vc) continue;
+        const hc = crossCheck(bits, w, h, Math.floor(runs[i + 2] + sc[2] / 2), Math.floor(vc.c), false, sc[2], total);
+        if (!hc) continue;
+        add(hc.c, vc.c, (hc.total + vc.total) / 14);
+      }
+    }
+    return cands;
+  }
+
+  // 후보 중에서 직각 이등변 삼각형에 가장 가까운 세 개를 고릅니다
+  function pickThree(cands) {
+    let list = cands.filter(c => c.count >= 2);
+    if (list.length < 3) list = cands.slice();
+    if (list.length < 3) return [];
+    list.sort((a, b) => b.count - a.count);
+    list = list.slice(0, 14);
+    const triples = [];
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) for (let k = j + 1; k < list.length; k++) {
+      const p = [list[i], list[j], list[k]];
+      const msMax = Math.max(p[0].ms, p[1].ms, p[2].ms), msMin = Math.min(p[0].ms, p[1].ms, p[2].ms);
+      if (msMax / msMin > 1.6) continue;
+      const d = [Math.hypot(p[1].x - p[2].x, p[1].y - p[2].y), Math.hypot(p[0].x - p[2].x, p[0].y - p[2].y), Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y)];
+      const corner = d[0] >= d[1] && d[0] >= d[2] ? 0 : d[1] >= d[2] ? 1 : 2;
+      const c = d[corner], [a, b] = d.filter((_, q) => q !== corner).sort((x, y) => x - y);
+      const ms = (p[0].ms + p[1].ms + p[2].ms) / 3;
+      if (a / ms < 9 || b / ms > 70) continue;
+      const e1 = (b - a) / b, e2 = Math.abs(c - Math.hypot(a, b)) / c;
+      if (e1 > 0.5 || e2 > 0.25) continue;
+      const A = p[corner], [B, C] = p.filter((_, q) => q !== corner);
+      const cross = (B.x - A.x) * (C.y - A.y) - (B.y - A.y) * (C.x - A.x);
+      triples.push({ score: e1 + 2 * e2 + (msMax / msMin - 1) * 0.5, tl: A, tr: cross > 0 ? B : C, bl: cross > 0 ? C : B });
+    }
+    return triples.sort((x, y) => x.score - y.score);
+  }
+
+  // 3) 모듈(작은 칸) 크기 재기 — 무늬 중심에서 다른 무늬 쪽으로 검-흰-검을 따라갑니다
+  function bwbRun(bits, w, h, fx, fy, tx, ty) {
+    const steep = Math.abs(ty - fy) > Math.abs(tx - fx);
+    if (steep) { [fx, fy] = [fy, fx]; [tx, ty] = [ty, tx]; }
+    const dx = Math.abs(tx - fx), dy = Math.abs(ty - fy), xs = fx < tx ? 1 : -1, ys = fy < ty ? 1 : -1;
+    let err = -dx / 2, state = 0;
+    for (let x = fx, y = fy; x !== tx + xs; x += xs) {
+      const rx = steep ? y : x, ry = steep ? x : y;
+      if (rx < 0 || ry < 0 || rx >= w || ry >= h) break;
+      if ((state === 1) === (bits[ry * w + rx] === 1)) {
+        if (state === 2) return Math.hypot(x - fx, y - fy);
+        state++;
+      }
+      err += dy;
+      if (err > 0) { if (y === ty) break; y += ys; err -= dx; }
+    }
+    return state === 2 ? Math.hypot(tx + xs - fx, ty - fy) : NaN;
+  }
+  function bwbBoth(bits, w, h, fx, fy, tx, ty) {
+    fx = Math.floor(fx); fy = Math.floor(fy); tx = Math.floor(tx); ty = Math.floor(ty);
+    let r = bwbRun(bits, w, h, fx, fy, tx, ty);
+    let scale = 1, ox = fx - (tx - fx);
+    if (ox < 0) { scale = fx / (fx - ox); ox = 0; } else if (ox >= w) { scale = (w - 1 - fx) / (ox - fx); ox = w - 1; }
+    let oy = Math.floor(fy - (ty - fy) * scale);
+    scale = 1;
+    if (oy < 0) { scale = fy / (fy - oy); oy = 0; } else if (oy >= h) { scale = (h - 1 - fy) / (oy - fy); oy = h - 1; }
+    ox = Math.floor(fx + (ox - fx) * scale);
+    r += bwbRun(bits, w, h, fx, fy, ox, oy);
+    return r - 1;
+  }
+  function moduleSize(bits, w, h, a, b) {
+    const e1 = bwbBoth(bits, w, h, a.x, a.y, b.x, b.y), e2 = bwbBoth(bits, w, h, b.x, b.y, a.x, a.y);
+    if (isNaN(e1)) return e2 / 7;
+    if (isNaN(e2)) return e1 / 7;
+    return (e1 + e2) / 14;
+  }
+
+  // 4) 원근 변환(사각형 → 사각형): 모듈 좌표 → 화면 좌표
+  function homography(src, dst) {
+    const A = [], B = [];
+    for (let i = 0; i < 4; i++) {
+      const [u, v] = src[i], [x, y] = dst[i];
+      A.push([u, v, 1, 0, 0, 0, -u * x, -v * x]); B.push(x);
+      A.push([0, 0, 0, u, v, 1, -u * y, -v * y]); B.push(y);
+    }
+    for (let c = 0; c < 8; c++) {
+      let piv = c;
+      for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      if (Math.abs(A[piv][c]) < 1e-9) return null;
+      [A[c], A[piv]] = [A[piv], A[c]]; [B[c], B[piv]] = [B[piv], B[c]];
+      for (let r = 0; r < 8; r++) {
+        if (r === c) continue;
+        const f = A[r][c] / A[c][c];
+        if (!f) continue;
+        for (let k = c; k < 8; k++) A[r][k] -= f * A[c][k];
+        B[r] -= f * B[c];
+      }
+    }
+    const H = B.map((b, i) => b / A[i][i]);
+    return (u, v) => { const d = H[6] * u + H[7] * v + 1; return [(H[0] * u + H[1] * v + H[2]) / d, (H[3] * u + H[4] * v + H[5]) / d]; };
+  }
+
+  // 오른쪽 아래 정렬 무늬(버전 2 이상) 찾기 — 못 찾으면 null
+  function findAlignment(bits, w, h, ex, ey, ms, radius) {
+    const x0 = Math.max(0, Math.floor(ex - radius)), x1 = Math.min(w - 1, Math.ceil(ex + radius));
+    const y0 = Math.max(0, Math.floor(ey - radius)), y1 = Math.min(h - 1, Math.ceil(ey + radius));
+    let best = null;
+    const near = (a, m) => Math.abs(a - m) < m * 0.7;
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0 + 1; x <= x1; x++) {
+        if (!bits[y * w + x] || bits[y * w + x - 1]) continue;
+        let e = x;
+        while (e <= x1 && bits[y * w + e]) e++;
+        const len = e - x;
+        if (!near(len, ms)) continue;
+        let l = x - 1, r = e;
+        while (l >= x0 && !bits[y * w + l]) l--;
+        while (r <= x1 && !bits[y * w + r]) r++;
+        if (l < x0 || r > x1 || !near(x - 1 - l, ms) || !near(r - e, ms)) continue;
+        const cx = (x + e - 1) / 2, ix = Math.round(cx);
+        let t = y, b = y;
+        while (t >= y0 && bits[t * w + ix]) t--;
+        while (b <= y1 && bits[b * w + ix]) b++;
+        if (!near(b - t - 1, ms)) continue;
+        let tt = t, bb = b;
+        while (tt >= y0 && !bits[tt * w + ix]) tt--;
+        while (bb <= y1 && !bits[bb * w + ix]) bb++;
+        if (tt < y0 || bb > y1 || !near(t - tt, ms) || !near(bb - b, ms)) continue;
+        const cy = (t + b) / 2, d = Math.hypot(cx - ex, cy - ey);
+        if (!best || d < best.d) best = { x: cx, y: cy, d };
+      }
+    }
+    return best;
+  }
+
+  // 5) 격자 읽기 → 오류 정정 → 글자
+  function rsCorrect(cw, nsym) {
+    const n = cw.length, synd = new Uint8Array(nsym);
+    let any = 0;
+    const syndromes = () => {
+      any = 0;
+      for (let j = 0; j < nsym; j++) { let s = 0; const a = GF.exp[j]; for (let i = 0; i < n; i++) s = GF.mul(s, a) ^ cw[i]; synd[j] = s; any |= s; }
+    };
+    syndromes();
+    if (!any) return true;
+    let C = [1], B = [1], L = 0, m = 1, b = 1;
+    for (let r = 0; r < nsym; r++) {
+      let d = synd[r];
+      for (let i = 1; i <= L; i++) d ^= GF.mul(C[i] || 0, synd[r - i]);
+      if (!d) { m++; continue; }
+      const coef = GF.div(d, b), T = C.slice();
+      while (C.length < B.length + m) C.push(0);
+      for (let i = 0; i < B.length; i++) C[i + m] ^= GF.mul(coef, B[i]);
+      if (2 * L <= r) { L = r + 1 - L; B = T; b = d; m = 1; } else m++;
+    }
+    if (2 * L > nsym) return false;
+    while (C.length < L + 1) C.push(0);
+    C = C.slice(0, L + 1);
+    const pos = [];
+    for (let i = 0; i < n; i++) {
+      const xi = GF.exp[(255 - i) % 255];
+      let s = 0;
+      for (let k = C.length - 1; k >= 0; k--) s = GF.mul(s, xi) ^ C[k];
+      if (!s) pos.push(i);
+    }
+    if (pos.length !== L) return false;
+    const om = new Uint8Array(nsym);
+    for (let i = 0; i < nsym; i++) { let s = 0; for (let k = 0; k <= i && k < C.length; k++) s ^= GF.mul(C[k], synd[i - k]); om[i] = s; }
+    for (const i of pos) {
+      const X = GF.exp[i], xi = GF.exp[(255 - i) % 255];
+      let o = 0;
+      for (let k = nsym - 1; k >= 0; k--) o = GF.mul(o, xi) ^ om[k];
+      let dl = 0;
+      for (let k = 1; k < C.length; k += 2) dl ^= GF.mul(C[k], GF.pow(xi, k - 1));
+      if (!dl) return false;
+      cw[n - 1 - i] ^= GF.mul(X, GF.div(o, dl));
+    }
+    syndromes();
+    return !any;
+  }
+
+  function parseSegments(bytes, v) {
+    const total = bytes.length * 8;
+    let pos = 0, out = '';
+    const read = n => { let r = 0; for (let i = 0; i < n; i++, pos++) r = (r << 1) | ((bytes[pos >> 3] >> (7 - (pos & 7))) & 1); return r; };
+    const ci = Q.ccIndex(v);
+    while (pos + 4 <= total) {
+      const mode = read(4);
+      if (mode === 0) break;
+      if (mode === 7) { if (pos + 8 > total) return null; read(8); continue; }
+      if (!Q.CC_BITS[mode]) return null;
+      const ccb = Q.CC_BITS[mode][ci];
+      if (pos + ccb > total) return null;
+      let cnt = read(ccb);
+      if (mode === 1) {
+        while (cnt > 0) {
+          const k = Math.min(3, cnt), nb = k * 3 + 1;
+          if (pos + nb > total) return null;
+          const d = read(nb);
+          if (d >= 10 ** k) return null;
+          out += String(d).padStart(k, '0');
+          cnt -= k;
+        }
+      } else if (mode === 2) {
+        while (cnt >= 2) { if (pos + 11 > total) return null; const d = read(11); if (d >= 45 * 45) return null; out += Q.ALNUM[Math.floor(d / 45)] + Q.ALNUM[d % 45]; cnt -= 2; }
+        if (cnt === 1) { if (pos + 6 > total) return null; const d = read(6); if (d >= 45) return null; out += Q.ALNUM[d]; }
+      } else {
+        if (pos + cnt * 8 > total) return null;
+        const bs = new Uint8Array(cnt);
+        for (let i = 0; i < cnt; i++) bs[i] = read(8);
+        out += new TextDecoder('utf-8').decode(bs);
+      }
+    }
+    return out;
+  }
+
+  function popcount(x) { let c = 0; while (x) { c += x & 1; x >>>= 1; } return c; }
+
+  // m: dim×dim (1=검정) → { text, version, ecl } 또는 null
+  function decodeMatrix(m, dim) {
+    const v = (dim - 17) / 4;
+    if (!Number.isInteger(v) || v < 1 || v > Q.MAX_VER) return null;
+    const [pa, pb] = Q.formatPositions(dim);
+    const read = ps => ps.reduce((acc, [x, y], i) => acc | (m[y * dim + x] << i), 0);
+    const fa = read(pa), fb = read(pb);
+    let best = null;
+    for (let e = 0; e < 4; e++) for (let mask = 0; mask < 8; mask++) {
+      const f = Q.formatBits(e, mask), d = Math.min(popcount(f ^ fa), popcount(f ^ fb));
+      if (!best || d < best.d) best = { d, e, mask };
+    }
+    if (best.d > 3) return null;
+    const g = Q.makeGrid(v), pos = Q.dataPositions(dim, g.fn), mf = Q.MASKS[best.mask];
+    const nCw = Q.numCodewords(v), raw = new Uint8Array(nCw);
+    for (let i = 0; i < nCw * 8; i++) {
+      const p = pos[i], x = p % dim, y = (p / dim) | 0;
+      raw[i >> 3] |= (m[p] ^ (mf(x, y) ? 1 : 0)) << (7 - (i & 7));
+    }
+    const e = best.e, nb = Q.NUM_BLOCKS[e][v], ecLen = Q.ECC_PER_BLOCK[e][v];
+    const numShort = nb - (nCw % nb), shortLen = Math.floor(nCw / nb), blocks = [];
+    for (let i = 0; i < nb; i++) blocks.push(new Uint8Array(shortLen + (i < numShort ? 0 : 1)));
+    let k = 0;
+    for (let i = 0; i < shortLen - ecLen; i++) for (let j = 0; j < nb; j++) blocks[j][i] = raw[k++];
+    for (let j = numShort; j < nb; j++) blocks[j][shortLen - ecLen] = raw[k++];
+    for (let i = 0; i < ecLen; i++) for (let j = 0; j < nb; j++) blocks[j][blocks[j].length - ecLen + i] = raw[k++];
+    const data = [];
+    for (const b of blocks) {
+      if (!rsCorrect(b, ecLen)) return null;
+      for (let i = 0; i < b.length - ecLen; i++) data.push(b[i]);
+    }
+    const text = parseSegments(data, v);
+    return text == null ? null : { text, version: v, ecl: 'LMQH'[e] };
+  }
+
+  const BR_STEPS = [];
+  for (let a = -2.5; a <= 2.5; a += 0.5) for (let b = -2.5; b <= 2.5; b += 0.5) BR_STEPS.push([a, b]);
+  BR_STEPS.sort((p, q) => (p[0] * p[0] + p[1] * p[1]) - (q[0] * q[0] + q[1] * q[1]));
+
+  function sampleAndDecode(bits, w, h, tl, tr, bl, ms) {
+    const dTop = Math.hypot(tr.x - tl.x, tr.y - tl.y), dLeft = Math.hypot(bl.x - tl.x, bl.y - tl.y);
+    const est = (dTop + dLeft) / 2 / ms + 7;
+    const dims = [];
+    const base = Math.round((est - 1) / 4) * 4 + 1;
+    for (const d of [base, base + 4, base - 4]) if (d >= 21 && d <= Q.MAX_VER * 4 + 17 && Math.abs(d - est) < 4.5) dims.push(d);
+    for (const dim of dims) {
+      const brx = tr.x - tl.x + bl.x, bry = tr.y - tl.y + bl.y;
+      const tries = [];
+      if (dim > 21) {
+        const corr = 1 - 3 / (dim - 7), ex = tl.x + corr * (brx - tl.x), ey = tl.y + corr * (bry - tl.y);
+        for (const r of [4, 8, 16]) {
+          const ap = findAlignment(bits, w, h, ex, ey, ms, r * ms);
+          if (ap) { tries.push([[dim - 6.5, dim - 6.5], [ap.x, ap.y]]); break; }
+        }
+      }
+      // 정렬 무늬가 없으면 평행사변형으로 어림한 오른쪽 아래를 둘레에서 조금씩 옮겨 가며 시도
+      // (비스듬히 들면 원근 때문에 어림이 1~2칸 어긋납니다. 맞는 자리는 오류 정정이 확인해 줍니다)
+      const ul = Math.hypot(tr.x - tl.x, tr.y - tl.y), vl = Math.hypot(bl.x - tl.x, bl.y - tl.y);
+      const ux = (tr.x - tl.x) / ul * ms, uy = (tr.y - tl.y) / ul * ms, vx = (bl.x - tl.x) / vl * ms, vy = (bl.y - tl.y) / vl * ms;
+      for (const [a, b] of BR_STEPS) tries.push([[dim - 3.5, dim - 3.5], [brx + a * ux + b * vx, bry + a * uy + b * vy]]);
+      for (const [src4, dst4] of tries) {
+        const map = homography([[3.5, 3.5], [dim - 3.5, 3.5], [3.5, dim - 3.5], src4], [[tl.x, tl.y], [tr.x, tr.y], [bl.x, bl.y], dst4]);
+        if (!map) continue;
+        const m = new Uint8Array(dim * dim);
+        let out = 0;
+        for (let y = 0; y < dim; y++) for (let x = 0; x < dim; x++) {
+          let [px, py] = map(x + 0.5, y + 0.5);
+          if (px < -1 || py < -1 || px > w || py > h) out++;
+          px = Math.min(w - 1, Math.max(0, Math.floor(px))); py = Math.min(h - 1, Math.max(0, Math.floor(py)));
+          m[y * dim + x] = bits[py * w + px];
+        }
+        if (out > dim) continue;
+        const r = decodeMatrix(m, dim);
+        if (r) {
+          r.corners = [map(0, 0), map(dim, 0), map(dim, dim), map(0, dim)];
+          return r;
+        }
+      }
+    }
+    return null;
+  }
+
+  // 밝기 배열(0~255)에서 QR 찾기 → [{ text, corners, ... }]
+  function decodeLuminance(lum, w, h, opt = {}) {
+    const bits = binarize(lum, w, h), found = [];
+    let cands = findFinders(bits, w, h);
+    const used = new Set();
+    for (let round = 0; round < (opt.max || 3); round++) {
+      const triples = pickThree(cands.filter(c => !used.has(c)));
+      let hit = null;
+      for (const t of triples.slice(0, 6)) {
+        const ms = (moduleSize(bits, w, h, t.tl, t.tr) + moduleSize(bits, w, h, t.tl, t.bl)) / 2;
+        if (!(ms > 0.8)) continue;
+        // 좌우가 뒤집힌 화면(일부 카메라)도 읽도록 두 방향 모두 시도
+        const r = sampleAndDecode(bits, w, h, t.tl, t.tr, t.bl, ms) || sampleAndDecode(bits, w, h, t.tl, t.bl, t.tr, ms);
+        if (r) { hit = { r, t }; break; }
+      }
+      if (!hit) break;
+      found.push(hit.r);
+      used.add(hit.t.tl); used.add(hit.t.tr); used.add(hit.t.bl);
+    }
+    return found;
+  }
+
+  // RGBA(ImageData) 입력
+  function decodeRGBA(data, w, h, opt) {
+    const lum = new Uint8Array(w * h);
+    for (let i = 0, j = 0; i < lum.length; i++, j += 4) lum[i] = (data[j] * 77 + data[j + 1] * 150 + data[j + 2] * 29) >> 8;
+    return decodeLuminance(lum, w, h, opt);
+  }
+
+  return { decodeRGBA, decodeLuminance, _: { binarize, findFinders, pickThree, decodeMatrix, rsCorrect, homography, parseSegments } };
+})();
+
+
+/* ===== 30-data.js ===== */
+/* 명단 · 수업 회차 · 출석 기록 (브라우저에 자동 저장) */
+const STORE_KEY = 'qr-attendance:sci2-2026-2';
+const QR_PREFIX = 'AS26';                       // 카드 QR 앞머리 (After School 2026)
+const TOKEN_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';   // 헷갈리는 0·1·I·O 뺌
+
+const DEFAULT_CONFIG = {
+  title: '2학년 과학 방과후학교',
+  term: '2026학년도 2학기',
+  openBefore: 30,      // 그날 첫 회차 시작 몇 분 전부터 출석 체크를 받을지
+  lateGrace: 0,        // 회차 시작 후 몇 분까지 출석으로 볼지 (0 = 시작 시각까지 출석, 1분 뒤부터 지각)
+  scanEach: false,     // false: 한 번 찍으면 그날 남은 회차까지 함께 기록 / true: 회차마다 다시 찍기
+  sound: true,
+  voice: false,
+  mirror: true,        // 카메라 화면 좌우 반전(거울처럼)
+  deviceId: ''
+};
+
+// 2학년_과학방과후_최종명단.html · 선발결과 발표자료 기준 — 10.23(금)~11.13(금) 월·수·금 10일
+// 하루를 반으로 나눠 2회차씩 → 총 20회차
+const DEFAULT_DAYS = [
+  ['2026-10-23', '16:30', '18:00', '첫날 · 7교시 수업 후 시작'],
+  ['2026-10-26', '15:30', '17:30', ''],
+  ['2026-10-28', '15:30', '17:30', ''],
+  ['2026-10-30', '15:30', '17:30', ''],
+  ['2026-11-02', '15:30', '17:30', ''],
+  ['2026-11-04', '15:30', '17:30', ''],
+  ['2026-11-06', '15:30', '17:30', ''],
+  ['2026-11-09', '15:30', '17:30', ''],
+  ['2026-11-11', '15:30', '17:30', ''],
+  ['2026-11-13', '15:30', '17:30', '마지막 날']
+];
+// 하루(시작~끝)를 반으로 나눈 두 회차
+function splitDay(date, start, end, note) {
+  const mid = fromMin(Math.round((toMin(start) + toMin(end)) / 2));
+  return [{ id: date + '-1', date, start, end: mid, note: note || '' }, { id: date + '-2', date, start: mid, end, note: '' }];
+}
+const defaultSessions = () => DEFAULT_DAYS.flatMap(([date, start, end, note]) => splitDay(date, start, end, note));
+
+// [반, [[번호, 이름, 카드 코드], ...]] — 카드 코드는 인쇄한 QR 카드와 짝이므로 바꾸지 마세요
+// 이 선생님 출석 대상: 5·6·7·8·10반 15명 (2학년_과학방과후_선발결과_발표자료 기준)
+// 태블릿용 웹 버전을 만들 때는 아래 명단을 빼고 만듭니다 (build.mjs) — 이름은 인터넷 주소에 올라가지 않음
+const DEFAULT_ROSTER = [];
+const GRADE = 2;
+
+const STATUS = {
+  P: { label: '출석', mark: '○', cls: 'p' },
+  L: { label: '지각', mark: '지각', cls: 'l' },
+  E: { label: '조퇴', mark: '조퇴', cls: 'e' },
+  A: { label: '결석', mark: '결석', cls: 'a' },
+  X: { label: '공결', mark: '공결', cls: 'x' }
+};
+const STATUS_ORDER = ['P', 'L', 'E', 'A', 'X'];
+
+let S = null;            // 현재 상태
+let storageOK = true;    // 브라우저 자동 저장이 되는지
+
+function freshState() {
+  return {
+    v: 2,
+    config: Object.assign({}, DEFAULT_CONFIG),
+    students: DEFAULT_ROSTER.flatMap(([c, list]) => list.map(([n, name, t]) => ({ t, g: GRADE, c, n, name }))),
+    sessions: defaultSessions(),
+    records: {},
+    closed: {},
+    updated: 0
+  };
+}
+
+const DATE_RE = /^\d{4}-\d\d-\d\d$/, ID_RE = /^\d{4}-\d\d-\d\d-\d{1,2}$/, TIME_RE = /^\d\d:\d\d$/;
+const cleanRecs = recs => {
+  const out = {};
+  if (recs && typeof recs === 'object') for (const [t, r] of Object.entries(recs)) if (r && STATUS[r.s]) out[t] = { s: r.s, at: String(r.at || '').slice(0, 8), by: r.by === 'qr' ? 'qr' : 'hand' };
+  return out;
+};
+
+// 불러온 자료를 검사하고 빠진 부분을 채웁니다 (잘못된 자료면 오류)
+function normalize(d) {
+  if (!d || typeof d !== 'object' || !Array.isArray(d.students) || !Array.isArray(d.sessions)) throw new Error('출석 자료 형식이 아닙니다');
+  const out = freshState();
+  out.config = Object.assign({}, DEFAULT_CONFIG, d.config || {});
+  out.students = d.students.filter(s => s && /^[A-Z0-9]{4}$/.test(s.t) && s.name).map(s => ({
+    t: s.t, g: +s.g || GRADE, c: +s.c || 0, n: +s.n || 0, name: String(s.name).slice(0, 20), added: DATE_RE.test(s.added || '') ? s.added : undefined
+  }));
+  const time = (v, dflt) => (TIME_RE.test(v) ? v : dflt);
+  out.records = {};
+  out.closed = {};
+  if (d.sessions.some(s => s && !s.id)) {
+    // 예전 자료(하루 = 1회) → 하루를 반으로 나눠 2회차로, 그날 기록은 두 회차에 똑같이 옮김
+    out.sessions = d.sessions.filter(s => s && DATE_RE.test(s.date)).flatMap(s => splitDay(s.date, time(s.start, '15:30'), time(s.end, '17:30'), String(s.note || '').slice(0, 40)));
+    for (const s of out.sessions) {
+      const recs = (d.records || {})[s.date];
+      if (recs) out.records[s.id] = cleanRecs(recs);
+      if ((d.closed || {})[s.date]) out.closed[s.id] = true;
+    }
+  } else {
+    out.sessions = d.sessions.filter(s => s && ID_RE.test(s.id) && DATE_RE.test(s.date) && s.id.startsWith(s.date)).map(s => ({
+      id: s.id, date: s.date, start: time(s.start, '15:30'), end: time(s.end, '16:30'), note: String(s.note || '').slice(0, 40)
+    }));
+    const ids = new Set(out.sessions.map(s => s.id));
+    for (const [id, recs] of Object.entries(d.records || {})) if (ids.has(id)) out.records[id] = cleanRecs(recs);
+    for (const [id, v] of Object.entries(d.closed || {})) if (ids.has(id) && v) out.closed[id] = true;
+  }
+  out.updated = +d.updated || 0;
+  return out;
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    S = raw ? normalize(JSON.parse(raw)) : freshState();
+  } catch (e) {
+    storageOK = false;
+    S = freshState();
+  }
+}
+
+const saveListeners = [];
+function save() {
+  S.updated = Date.now();
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); storageOK = true; } catch (e) { storageOK = false; }
+  saveListeners.forEach(f => f());
+}
+
+// ── 학생 ──
+const studentsSorted = () => S.students.slice().sort((a, b) => a.g - b.g || a.c - b.c || a.n - b.n || a.name.localeCompare(b.name, 'ko'));
+const studentByToken = t => S.students.find(s => s.t === t);
+const stuLabel = s => `${s.g}-${s.c}`;
+const cardText = s => `${QR_PREFIX}-${s.t}`;
+
+function newToken(seed) {
+  // 같은 학생을 다른 컴퓨터에서 추가해도 같은 코드가 나오도록 이름·반·번호로 정합니다
+  for (let salt = 0; ; salt++) {
+    let hsh = 0x811c9dc5;
+    for (const ch of seed + '|' + salt) { hsh ^= ch.codePointAt(0); hsh = Math.imul(hsh, 0x01000193) >>> 0; }
+    let t = '';
+    for (let i = 0; i < 4; i++) { t += TOKEN_CHARS[hsh & 31]; hsh >>>= 5; }
+    if (!studentByToken(t)) return t;
+  }
+}
+function addStudent(g, c, n, name) {
+  const st = { t: newToken(`${QR_PREFIX}|${g}|${c}|${n}|${name}`), g, c, n, name, added: dateKey(now()) };
+  S.students.push(st);
+  save();
+  return st;
+}
+function removeStudent(t) {
+  S.students = S.students.filter(s => s.t !== t);
+  for (const recs of Object.values(S.records)) delete recs[t];
+  save();
+}
+
+// ── 수업 회차 ──
+const sessionsSorted = () => S.sessions.slice().sort((a, b) => a.date.localeCompare(b.date) || toMin(a.start) - toMin(b.start) || a.id.localeCompare(b.id));
+const sessionById = id => S.sessions.find(s => s.id === id);
+const sessionNo = id => sessionsSorted().findIndex(s => s.id === id) + 1;
+const sessionsOnDate = date => sessionsSorted().filter(s => s.date === date);
+const partOf = s => sessionsOnDate(s.date).findIndex(x => x.id === s.id) + 1;      // 그날의 몇 번째(1부·2부)
+const nowMin = (t = now()) => t.getHours() * 60 + t.getMinutes();
+// 수업이 있는 날 목록: [{ date, start(첫 회차), end(마지막 회차), sessions }]
+function dayList() {
+  const days = new Map();
+  for (const s of sessionsSorted()) {
+    if (!days.has(s.date)) days.set(s.date, { date: s.date, start: s.start, end: s.end, sessions: [] });
+    const d = days.get(s.date);
+    d.sessions.push(s);
+    if (toMin(s.end) > toMin(d.end)) d.end = s.end;
+  }
+  return [...days.values()];
+}
+// 그날 출석 체크가 열리는 시각(분): 첫 회차 시작 - openBefore
+function dayOpenMin(date) {
+  const ss = sessionsOnDate(date);
+  return ss.length ? Math.max(0, toMin(ss[0].start) - S.config.openBefore) : 0;
+}
+
+// 회차의 지금 단계: future(앞날) · before(체크 열리기 전) · open(정시) · late(지각 시간) · over(회차 끝) · past(지난 날)
+function sessionPhase(sess, t = now()) {
+  const today = dateKey(t);
+  if (sess.date > today) return 'future';
+  if (sess.date < today) return 'past';
+  const m = nowMin(t);
+  if (m < dayOpenMin(sess.date)) return 'before';
+  if (m <= toMin(sess.start) + S.config.lateGrace) return 'open';
+  if (m < toMin(sess.end)) return 'late';
+  return 'over';
+}
+const sessionFinished = sess => S.closed[sess.id] || ['past', 'over'].includes(sessionPhase(sess));
+
+// 지금 회차: 오늘 아직 안 끝난 첫 회차(다 끝났으면 오늘 마지막 회차), 오늘 수업이 없으면 다음 회차
+function currentSession() {
+  const t = now(), today = dateKey(t), m = nowMin(t), todays = sessionsOnDate(today);
+  if (todays.length) return todays.find(s => m < toMin(s.end)) || todays[todays.length - 1];
+  const all = sessionsSorted();
+  return all.find(s => s.date > today) || all[all.length - 1] || null;
+}
+
+// ── 출석 ──
+// 한 칸의 상태: { s: 'P'|'L'|'E'|'A'|'X'|'', at, by, auto(기록 없이 끝난 회차 → 결석), na(학생 추가 전 회차) }
+function statusOf(id, t) {
+  const sess = sessionById(id), st = studentByToken(t);
+  if (st && st.added && sess && sess.date < st.added) return { s: '', na: true };
+  const r = S.records[id] && S.records[id][t];
+  if (r) return Object.assign({ auto: false }, r);
+  if (sess && sessionFinished(sess)) return { s: 'A', auto: true };
+  return { s: '' };
+}
+
+function setStatus(id, t, s) {
+  const sess = sessionById(id), recs = S.records[id] = S.records[id] || {};
+  if (!s) delete recs[t];
+  else recs[t] = { s, at: (recs[t] && recs[t].at) || (sess && sess.date === dateKey(now()) ? clock(now()) : ''), by: 'hand' };
+  save();
+}
+
+// QR 글자 → 출석 처리 결과
+//   kind: ok(출석) · late(지각) · dup(이미 체크) · practice(연습: 저장 안 함) · ended(오늘 회차가 모두 끝남)
+//         · unknown(명단에 없는 카드) · foreign(다른 QR)
+// 한 번 찍으면 오늘 아직 끝나지 않은 회차에 모두 기록합니다(설정에서 '회차마다 다시 찍기'면 지금 회차만).
+function checkIn(text, selId) {
+  const m0 = /^([A-Z0-9]+)-([A-Z0-9]{4})$/.exec(String(text).trim().toUpperCase());
+  if (!m0 || m0[1] !== QR_PREFIX) return { kind: 'foreign', text };
+  const st = studentByToken(m0[2]);
+  if (!st) return { kind: 'unknown', text };
+  const t = now(), today = dateKey(t), sel = sessionById(selId), m = nowMin(t);
+  if (!sel || sel.date !== today) return { kind: 'practice', st, phase: sel ? sessionPhase(sel, t) : 'none' };
+  if (m < dayOpenMin(today)) return { kind: 'practice', st, phase: 'before' };
+  const left = sessionsOnDate(today).filter(s => m < toMin(s.end));
+  if (!left.length) return { kind: 'ended', st };
+  const targets = S.config.scanEach ? [left[0]] : left, at = clock(t);
+  let first = null, dupRec = null;
+  for (const s of targets) {
+    const recs = S.records[s.id] = S.records[s.id] || {}, cur = recs[st.t];
+    if (cur && ['P', 'L', 'E'].includes(cur.s)) { dupRec = dupRec || { rec: cur, sess: s }; continue; }
+    const rec = { s: m <= toMin(s.start) + S.config.lateGrace ? 'P' : 'L', at, by: 'qr' };
+    recs[st.t] = rec;
+    if (!first) first = { rec, sess: s };
+  }
+  if (!first) return { kind: 'dup', st, rec: dupRec.rec, sess: dupRec.sess };
+  save();
+  return { kind: first.rec.s === 'P' ? 'ok' : 'late', st, rec: first.rec, sess: first.sess };
+}
+
+// 학생 한 명의 합계
+function summaryOf(t) {
+  const sum = { P: 0, L: 0, E: 0, A: 0, X: 0, held: 0 };
+  for (const sess of S.sessions) {
+    const st = statusOf(sess.id, t);
+    if (st.s) { sum[st.s]++; sum.held++; }
+  }
+  sum.attended = sum.P + sum.L + sum.E;
+  sum.counted = sum.held - sum.X;          // 공결은 참여율 계산에서 뺍니다
+  sum.rate = sum.counted > 0 ? sum.attended / sum.counted : null;
+  return sum;
+}
+
+// 회차 하나의 합계
+function daySummary(id) {
+  const sum = { P: 0, L: 0, E: 0, A: 0, X: 0, none: 0, total: 0 };
+  for (const st of S.students) {
+    const x = statusOf(id, st.t);
+    if (x.na) continue;
+    sum.total++;
+    if (x.s) sum[x.s]++; else sum.none++;
+  }
+  return sum;
+}
+
+// ── 백업 ──
+function backupBlob() {
+  const data = { app: 'qr-attendance', key: STORE_KEY, version: APP_VERSION, exported: new Date().toISOString(), state: S };
+  return new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+}
+function restoreFrom(text) {
+  const d = JSON.parse(text);
+  if (!d || d.app !== 'qr-attendance') throw new Error('이 프로그램의 백업 파일이 아닙니다');
+  S = normalize(d.state);
+  save();
+}
+
+// ── 태블릿용 명단 파일: 이름·반·번호·카드 코드와 회차만 (출석 기록은 넣지 않음) ──
+function rosterData() {
+  return { app: 'qr-attendance-roster', key: STORE_KEY, version: APP_VERSION, title: S.config.title, term: S.config.term,
+    students: studentsSorted().map(({ t, g, c, n, name }) => ({ t, g, c, n, name })), sessions: sessionsSorted() };
+}
+const rosterBlob = () => new Blob([JSON.stringify(rosterData(), null, 1)], { type: 'application/json' });
+
+// 명단 파일 → 학생·회차만 바꾸고 출석 기록은 그대로 둡니다 (백업 파일을 고르면 통째로 복원)
+function importRoster(text) {
+  let d;
+  try { d = JSON.parse(text); } catch (e) { throw new Error('파일을 읽을 수 없어요'); }
+  if (d && d.app === 'qr-attendance') { S = normalize(d.state); save(); return { kind: 'backup', n: S.students.length }; }
+  if (!d || d.app !== 'qr-attendance-roster' || !Array.isArray(d.students)) throw new Error('출석 명단 파일이 아니에요');
+  const next = normalize({
+    config: Object.assign({}, S.config, { title: d.title || S.config.title, term: d.term || S.config.term }),
+    students: d.students, sessions: Array.isArray(d.sessions) && d.sessions.length ? d.sessions : S.sessions,
+    records: S.records, closed: S.closed, updated: S.updated
+  });
+  if (!next.students.length) throw new Error('명단에 학생이 없어요');
+  S = next;
+  save();
+  return { kind: 'roster', n: S.students.length };
+}
+
+
+/* ===== 40-xlsx.js ===== */
+/* 엑셀(.xlsx) 파일 만들기 — 색이 들어간 출석부를 외부 라이브러리 없이 씁니다 */
+const Xlsx = (() => {
+  const CRC = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+    return t;
+  })();
+  const crc32 = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+
+  // 압축하지 않는(저장 방식) zip
+  function zip(files) {
+    const enc = new TextEncoder(), parts = [], central = [], d = new Date();
+    const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    const date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    let offset = 0;
+    for (const f of files) {
+      const name = enc.encode(f.name), data = enc.encode(f.text), crc = crc32(data);
+      const lh = new DataView(new ArrayBuffer(30));
+      [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, time, 2], [12, date, 2], [14, crc, 4], [18, data.length, 4], [22, data.length, 4], [26, name.length, 2], [28, 0, 2]]
+        .forEach(([o, v, n]) => (n === 4 ? lh.setUint32(o, v, true) : lh.setUint16(o, v, true)));
+      parts.push(new Uint8Array(lh.buffer), name, data);
+      const ch = new DataView(new ArrayBuffer(46));
+      [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, time, 2], [14, date, 2], [16, crc, 4], [20, data.length, 4], [24, data.length, 4], [28, name.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2], [38, 0, 4], [42, offset, 4]]
+        .forEach(([o, v, n]) => (n === 4 ? ch.setUint32(o, v, true) : ch.setUint16(o, v, true)));
+      central.push(new Uint8Array(ch.buffer), name);
+      offset += 30 + name.length + data.length;
+    }
+    const size = central.reduce((s, p) => s + p.length, 0), end = new DataView(new ArrayBuffer(22));
+    [[0, 0x06054b50, 4], [8, files.length, 2], [10, files.length, 2], [12, size, 4], [16, offset, 4]]
+      .forEach(([o, v, n]) => (n === 4 ? end.setUint32(o, v, true) : end.setUint16(o, v, true)));
+    return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  }
+
+  // 셀 모양 번호 (styles.xml의 cellXfs 순서)
+  const ST = { normal: 0, title: 1, head: 2, center: 3, left: 4, P: 5, L: 6, E: 7, A: 8, X: 9, num: 10, pct: 11, note: 12, auto: 13, foot: 14 };
+  const fill = rgb => `<fill><patternFill patternType="solid"><fgColor rgb="FF${rgb}"/><bgColor indexed="64"/></patternFill></fill>`;
+  const xf = (font, fillId, border, extra = '', numFmt = 0) =>
+    `<xf numFmtId="${numFmt}" fontId="${font}" fillId="${fillId}" borderId="${border}" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"${numFmt ? ' applyNumberFormat="1"' : ''}>${extra}</xf>`;
+  const mid = '<alignment horizontal="center" vertical="center"/>';
+  const STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<fonts count="5">' +
+    '<font><sz val="11"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
+    '<font><b/><sz val="15"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
+    '<font><b/><sz val="11"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
+    '<font><sz val="10"/><color rgb="FF6B7280"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
+    '<font><b/><sz val="11"/><color rgb="FFB4233C"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
+    '</fonts>' +
+    '<fills count="9"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+    fill('DCE3F4') + fill('D5F2E1') + fill('FFEDB8') + fill('FFDDC2') + fill('FBD3DA') + fill('E4DAFB') + fill('F2F4F8') + '</fills>' +
+    '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>' +
+    '<border><left style="thin"><color rgb="FFB9C0D0"/></left><right style="thin"><color rgb="FFB9C0D0"/></right><top style="thin"><color rgb="FFB9C0D0"/></top><bottom style="thin"><color rgb="FFB9C0D0"/></bottom><diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="15">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    xf(1, 0, 0, '<alignment vertical="center"/>') +
+    xf(2, 2, 1, '<alignment horizontal="center" vertical="center" wrapText="1"/>') +
+    xf(0, 0, 1, mid) +
+    xf(0, 0, 1, '<alignment horizontal="left" vertical="center"/>') +
+    xf(0, 3, 1, mid) + xf(0, 4, 1, mid) + xf(0, 5, 1, mid) + xf(4, 6, 1, mid) + xf(0, 7, 1, mid) +
+    xf(0, 0, 1, mid) +
+    xf(0, 0, 1, mid, 9) +
+    xf(3, 0, 0, '<alignment vertical="center"/>') +
+    xf(3, 6, 1, mid) +
+    xf(2, 8, 1, mid) +
+    '</cellXfs><cellStyles count="1"><cellStyle name="표준" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+
+  const xmlEsc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  const colName = i => { let s = ''; for (i++; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + ((i - 1) % 26)) + s; return s; };
+
+  // sheet: { name, cols:[너비], rows:[[셀]], heights:{행번호:높이}, merges:['A1:C1'], freeze:{rows, cols}, landscape }
+  //   셀: null | 값 | { v, s: 모양 이름 }
+  function sheetXml(sh) {
+    let rows = '';
+    sh.rows.forEach((row, r) => {
+      const ht = sh.heights && sh.heights[r] ? ` ht="${sh.heights[r]}" customHeight="1"` : '';
+      rows += `<row r="${r + 1}"${ht}>`;
+      row.forEach((cell, c) => {
+        if (cell == null) return;
+        const o = typeof cell === 'object' ? cell : { v: cell };
+        const ref = colName(c) + (r + 1), s = ST[o.s || 'normal'] || 0;
+        if (o.v === '' || o.v == null) rows += `<c r="${ref}" s="${s}"/>`;
+        else if (typeof o.v === 'number') rows += `<c r="${ref}" s="${s}"><v>${o.v}</v></c>`;
+        else rows += `<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(o.v)}</t></is></c>`;
+      });
+      rows += '</row>';
+    });
+    const f = sh.freeze;
+    const pane = f ? `<pane${f.cols ? ` xSplit="${f.cols}"` : ''} ySplit="${f.rows}" topLeftCell="${colName(f.cols || 0)}${f.rows + 1}" activePane="${f.cols ? 'bottomRight' : 'bottomLeft'}" state="frozen"/>` : '';
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+      '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' +
+      `<sheetViews><sheetView workbookViewId="0">${pane}</sheetView></sheetViews>` +
+      '<sheetFormatPr defaultRowHeight="17"/>' +
+      `<cols>${sh.cols.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>` +
+      `<sheetData>${rows}</sheetData>` +
+      (sh.merges && sh.merges.length ? `<mergeCells count="${sh.merges.length}">${sh.merges.map(m => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>` : '') +
+      '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>' +
+      `<pageSetup paperSize="9" orientation="${sh.landscape ? 'landscape' : 'portrait'}" fitToWidth="1" fitToHeight="0"/>` +
+      '</worksheet>';
+  }
+
+  function book(sheets) {
+    const n = sheets.length, files = [];
+    files.push({ name: '[Content_Types].xml', text: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>' });
+    files.push({ name: '_rels/.rels', text: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' });
+    files.push({ name: 'xl/workbook.xml', text: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets>' +
+      sheets.map((s, i) => `<sheet name="${xmlEsc(s.name.replace(/[\\/?*[\]:]/g, ' ').slice(0, 31))}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + '</sheets></workbook>' });
+    files.push({ name: 'xl/_rels/workbook.xml.rels', text: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') +
+      `<Relationship Id="rId${n + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` });
+    files.push({ name: 'xl/styles.xml', text: STYLES });
+    sheets.forEach((s, i) => files.push({ name: `xl/worksheets/sheet${i + 1}.xml`, text: sheetXml(s) }));
+    return zip(files);
+  }
+
+  return { book, colName };
+})();
+
+// 출석부 → 엑셀 (시트 3개: 출석부 · 체크 기록 · 수업 일정)
+function attendanceWorkbook() {
+  const days = dayList(), sessions = sessionsSorted(), students = studentsSorted(), stamp = now();
+  const savedAt = `${dateKey(stamp)} ${clock(stamp).slice(0, 5)} 저장`;
+  const C = Xlsx.colName, F = 3, n = sessions.length, total = F + n + 6;
+
+  // 머리줄 두 줄: 날짜(그날 회차만큼 합침) / 회차
+  const head1 = [{ v: '반', s: 'head' }, { v: '번호', s: 'head' }, { v: '이름', s: 'head' }], head2 = [{ v: '', s: 'head' }, { v: '', s: 'head' }, { v: '', s: 'head' }];
+  const merges = [`A1:${C(total - 1)}1`, `A2:${C(total - 1)}2`, 'A3:A4', 'B3:B4', 'C3:C4'];
+  let col = F;
+  for (const d of days) {
+    d.sessions.forEach((s, i) => {
+      head1.push({ v: i ? '' : fmtDate(d.date), s: 'head' });
+      head2.push({ v: `${sessionNo(s.id)}회차\n${s.start}`, s: 'head' });
+    });
+    if (d.sessions.length > 1) merges.push(`${C(col)}3:${C(col + d.sessions.length - 1)}3`);
+    col += d.sessions.length;
+  }
+  ['출석', '지각', '조퇴', '결석', '공결', '참여율'].forEach((v, i) => { head1.push({ v, s: 'head' }); head2.push({ v: '', s: 'head' }); merges.push(`${C(F + n + i)}3:${C(F + n + i)}4`); });
+
+  const rows = [
+    [{ v: `${S.config.title} 출석부`, s: 'title' }],
+    [{ v: `${S.config.term} · ${sheetRangeText()} · ${students.length}명 · ${savedAt}`, s: 'note' }],
+    head1, head2
+  ];
+  for (const st of students) {
+    const sum = summaryOf(st.t);
+    rows.push([
+      { v: stuLabel(st), s: 'center' }, { v: st.n, s: 'num' }, { v: st.name, s: 'left' },
+      ...sessions.map(sess => {
+        const x = statusOf(sess.id, st.t);
+        if (x.na) return { v: '—', s: 'center' };
+        if (!x.s) return { v: '', s: 'center' };
+        if (x.auto) return { v: '결석', s: 'auto' };
+        return { v: x.s === 'L' && x.at ? `지각 ${x.at.slice(0, 5)}` : STATUS[x.s].label, s: x.s };
+      }),
+      { v: sum.P, s: 'num' }, { v: sum.L, s: 'num' }, { v: sum.E, s: 'num' }, { v: sum.A, s: 'num' }, { v: sum.X, s: 'num' },
+      sum.rate != null ? { v: Math.round(sum.rate * 1000) / 1000, s: 'pct' } : { v: '', s: 'center' }
+    ]);
+  }
+  rows.push([{ v: '참여 인원', s: 'foot' }, { v: '', s: 'foot' }, { v: '', s: 'foot' }, ...sessions.map(sess => {
+    const d = daySummary(sess.id), held = d.total - d.none;
+    return { v: held ? `${d.P + d.L + d.E}/${d.total}` : '', s: 'foot' };
+  }), ...[0, 1, 2, 3, 4, 5].map(() => ({ v: '', s: 'foot' }))]);
+  rows.push([]);
+  rows.push([{ v: '※ 참여율 = (출석+지각+조퇴) ÷ (진행된 회차 − 공결) · 연한 빨강 "결석"은 체크 기록 없이 끝난 회차입니다.', s: 'note' }]);
+
+  const sheet1 = {
+    name: '출석부', landscape: true, freeze: { rows: 4, cols: 3 },
+    cols: [6, 6, 10, ...sessions.map(() => 9), 6, 6, 6, 6, 6, 8],
+    heights: { 0: 26, 2: 20, 3: 32 }, merges, rows
+  };
+
+  const logRows = [[{ v: '체크 기록', s: 'title' }], ['날짜', '회차', '시간', '반', '번호', '이름', '상태', '체크 시각', '방법'].map(v => ({ v, s: 'head' }))];
+  for (const sess of sessions) {
+    for (const st of students) {
+      const r = S.records[sess.id] && S.records[sess.id][st.t];
+      if (!r) continue;
+      logRows.push([{ v: fmtDate(sess.date), s: 'center' }, { v: sessionNo(sess.id), s: 'num' }, { v: `${sess.start}~${sess.end}`, s: 'center' }, { v: stuLabel(st), s: 'center' }, { v: st.n, s: 'num' }, { v: st.name, s: 'left' },
+        { v: STATUS[r.s].label, s: r.s }, { v: r.at || '', s: 'center' }, { v: r.by === 'qr' ? 'QR' : '선생님 입력', s: 'center' }]);
+    }
+  }
+  const sheet2 = { name: '체크 기록', freeze: { rows: 2 }, cols: [12, 6, 13, 6, 6, 10, 8, 10, 12], heights: { 0: 26 }, rows: logRows };
+
+  const dayRows = [[{ v: '수업 일정', s: 'title' }], ['회차', '날짜', '시간', '메모', '출석', '지각', '조퇴', '결석', '공결', '미체크'].map(v => ({ v, s: 'head' }))];
+  for (const sess of sessions) {
+    const d = daySummary(sess.id);
+    dayRows.push([{ v: sessionNo(sess.id), s: 'num' }, { v: fmtDate(sess.date), s: 'center' }, { v: `${sess.start}~${sess.end}`, s: 'center' }, { v: sess.note || '', s: 'left' },
+      ...['P', 'L', 'E', 'A', 'X', 'none'].map(k => ({ v: d[k], s: 'num' }))]);
+  }
+  const sheet3 = { name: '수업 일정', freeze: { rows: 2 }, cols: [6, 12, 13, 26, 7, 7, 7, 7, 7, 8], heights: { 0: 26 }, rows: dayRows };
+
+  return Xlsx.book([sheet1, sheet2, sheet3]);
+}
+
+
+/* ===== 50-ui-core.js ===== */
+/* 화면 공통: 탭 · 상태 고르기 팝업 · 인쇄 · 전체 화면 */
+let currentTab = 'scan';
+const tabRenderers = {};
+
+function showTab(name) {
+  currentTab = name;
+  $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  $$('.tab').forEach(t => t.classList.toggle('on', t.id === 'tab-' + name));
+  closePop();
+  if (tabRenderers[name]) tabRenderers[name]();
+}
+
+function renderTitle() {
+  $('#appTitle').textContent = S.config.title;
+  document.title = `${S.config.title} · QR 출석체크`;
+}
+
+function renderSaveBadge() {
+  const b = $('#saveBadge');
+  b.classList.toggle('warn', !storageOK);
+  b.textContent = storageOK ? '● 자동 저장' : '⚠ 자동 저장 안 됨';
+  b.title = storageOK ? '출석 기록은 이 컴퓨터의 브라우저에 자동으로 저장됩니다'
+    : '이 브라우저에서는 자동 저장이 되지 않습니다. 수업이 끝나면 꼭 엑셀이나 백업 파일로 저장하세요.';
+}
+
+// ── 상태 고르기 팝업 ──
+let popCtx = null;
+function openPop(anchor, id, t, onDone) {
+  const st = studentByToken(t), sess = sessionById(id);
+  if (!st || !sess) return;
+  const cur = statusOf(id, t);
+  const pop = $('#pop');
+  pop.innerHTML = '';
+  pop.append(
+    h('h4', null, `${st.name} `, h('small', { class: 'tnum' }, `${stuLabel(st)}·${st.n}번`)),
+    h('div', { class: 'pop-sub' }, `${sessionNo(id)}회차 · ${fmtDate(sess.date, true)} ${sess.start}~${sess.end}` + (cur.at ? ` · 체크 ${cur.at.slice(0, 5)}` : '') + (cur.by === 'qr' ? ' (QR)' : cur.by === 'hand' ? ' (직접 입력)' : '')),
+    h('div', { class: 'pop-btns' },
+      ...STATUS_ORDER.map(k => h('button', { class: STATUS[k].cls + (cur.s === k && !cur.auto ? ' cur' : ''), onclick: () => pick(k) }, STATUS[k].label)),
+      h('button', { class: 'clear', onclick: () => pick('') }, '기록 지우기'))
+  );
+  function pick(k) {
+    setStatus(id, t, k);
+    closePop();
+    if (onDone) onDone();
+  }
+  pop.hidden = false;
+  const r = anchor.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let x = r.left + r.width / 2 - pw / 2, y = r.bottom + 6;
+  if (y + ph > innerHeight - 8) y = r.top - ph - 6;
+  x = Math.max(8, Math.min(innerWidth - pw - 8, x));
+  pop.style.left = x + 'px';
+  pop.style.top = Math.max(8, y) + 'px';
+  popCtx = { anchor };
+}
+function closePop() { $('#pop').hidden = true; popCtx = null; }
+document.addEventListener('pointerdown', e => {
+  if (popCtx && !$('#pop').contains(e.target) && !popCtx.anchor.contains(e.target)) closePop();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
+
+// ── 인쇄 ──
+function printPages(html, landscape) {
+  $('#print-area').innerHTML = html;
+  $('#pageStyle').textContent = `@page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 0; }`;
+  setTimeout(() => window.print(), 60);
+}
+window.addEventListener('afterprint', () => { $('#print-area').innerHTML = ''; });
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen().catch(() => toast('전체 화면을 쓸 수 없어요. F11 키를 눌러 보세요.'));
+}
+
+
+/* ===== 52-ui-scan.js ===== */
+/* 출석 체크 화면: 카메라로 QR을 읽어 바로 기록합니다 */
+let selectedId = null;            // 지금 보고 있는 회차
+let autoSelected = true;          // 회차를 프로그램이 골랐는지 (시간이 지나면 다음 회차로 저절로 넘어감)
+const Cam = { stream: null, devices: [], deviceId: '', timer: 0, frame: 0, detector: null, canvas: null, ctx: null, lastSeen: new Map(), drawn: 0, wake: null };
+
+function pickDefaultSession() {
+  const c = currentSession();
+  selectedId = c ? c.id : null;
+  autoSelected = true;
+}
+
+function renderSessSelect() {
+  const sel = $('#sessSelect'), today = dateKey(now()), cur = currentSession();
+  if (selectedId && !sessionById(selectedId)) pickDefaultSession();
+  sel.innerHTML = '';
+  if (!S.sessions.length) sel.append(h('option', { value: '' }, '수업 회차가 없어요 (설정에서 추가)'));
+  for (const d of dayList()) {
+    const g = h('optgroup', { label: `${fmtDate(d.date)}${d.date === today ? ' · 오늘' : ''}` });
+    for (const s of d.sessions) g.append(h('option', { value: s.id }, `${sessionNo(s.id)}회차 · ${fmtDate(s.date)} ${s.start}~${s.end}${cur && s.id === cur.id && s.date === today ? '  ◀ 지금' : ''}`));
+    sel.append(g);
+  }
+  sel.value = selectedId || '';
+}
+
+function modeOf(sess) {
+  const today = dateKey(now());
+  if (!sess) return ['practice', '연습 모드 · 기록 안 됨'];
+  if (sess.date > today) return ['practice', '연습 모드 · 아직 수업일이 아니에요'];
+  if (sess.date < today) return ['practice', '지난 회차 · QR은 기록 안 됨'];
+  if (sessionPhase(sess) === 'before') return ['practice', `연습 모드 · ${fromMin(dayOpenMin(sess.date))}부터 기록`];
+  return ['rec', `기록 중 · ${sessionNo(sess.id)}회차`];
+}
+
+const dur = sec => { sec = Math.max(0, Math.round(sec)); const hh = Math.floor(sec / 3600), mm = Math.floor((sec % 3600) / 60); return hh ? `${hh}시간 ${mm}분` : mm ? `${mm}분` : `${sec}초`; };
+function phaseInfo(sess) {
+  if (!sess) return ['past', ''];
+  const t = now(), ph = sessionPhase(sess, t), sec = t.getHours() * 3600 + t.getMinutes() * 60 + t.getSeconds();
+  const st = toMin(sess.start) * 60, openAt = dayOpenMin(sess.date), no = sessionNo(sess.id);
+  if (S.closed[sess.id]) return ['past', '마감한 회차 · 명단을 눌러 기록을 고칠 수 있어요'];
+  switch (ph) {
+    case 'future': {
+      const days = Math.round((parseDate(sess.date) - parseDate(dateKey(t))) / 864e5);
+      return ['future', `D-${days} · ${fmtDate(sess.date, true)} ${sess.start} ${no}회차 시작`];
+    }
+    case 'before': return ['before', `출석 체크는 ${fromMin(openAt)}부터 기록돼요 (${dur(openAt * 60 - sec)} 뒤)`];
+    case 'open':
+      if (sec < st) return ['open', `정시 출석 시간 · ${no}회차 시작까지 ${dur(st - sec)}`];
+      return ['open', `${fromMin(toMin(sess.start) + S.config.lateGrace)}까지 체크하면 출석 · 그 뒤는 지각`];
+    case 'late': return ['late', `지각 처리 중 · ${no}회차 시작(${sess.start})에서 ${dur(sec - st)} 지남`];
+    case 'over': return ['over', `${no}회차가 끝났어요 · 체크 안 한 학생은 결석으로 표시`];
+    default: return ['past', '지난 회차 · 명단을 눌러 기록을 고칠 수 있어요'];
+  }
+}
+
+// 하루에 회차가 여럿일 때 QR 한 번이 어디까지 기록되는지 알려 주는 한 줄
+function ruleText(sess) {
+  if (!sess) return '';
+  const day = sessionsOnDate(sess.date);
+  if (day.length < 2) return '';
+  const nos = day.map(s => sessionNo(s.id)).join('·');
+  return S.config.scanEach ? `이날 ${nos}회차 · 회차마다 QR을 다시 찍어요` : `이날 ${nos}회차 · QR 한 번이면 남은 회차까지 함께 기록`;
+}
+
+// "3회차 출석 · 4회차 출석" — 오늘 회차들의 상태
+function dayLine(st) {
+  const day = sessionsOnDate(dateKey(now()));
+  if (day.length < 2) return '';
+  return day.map(s => { const y = statusOf(s.id, st.t); return `${sessionNo(s.id)}회차 ${y.s ? (y.auto ? '결석' : STATUS[y.s].label) : '미체크'}`; }).join(' · ');
+}
+
+function renderScanSide() {
+  const sess = sessionById(selectedId), today = dateKey(now());
+  $('#sessTime').textContent = sess ? `${fmtDate(sess.date, true)} · ${sess.start} ~ ${sess.end}` : '';
+  $('#sessNote').textContent = sess && sess.note ? sess.note : '';
+  const [mcls, mtxt] = modeOf(sess);
+  const badge = $('#modeBadge');
+  badge.className = 'mode-badge ' + mcls;
+  badge.textContent = mtxt;
+  const [pcls, ptxt] = phaseInfo(sess);
+  const ph = $('#phase');
+  ph.className = 'phase ' + pcls;
+  ph.textContent = ptxt;
+  $('#ruleLine').textContent = ruleText(sess);
+
+  const counts = $('#counts'), bar = $('.bar');
+  counts.innerHTML = '';
+  if (sess) {
+    const d = daySummary(sess.id);
+    const items = [['p', '출석', d.P], ['l', '지각', d.L], ['a', '결석', d.A]];
+    if (d.E) items.push(['e', '조퇴', d.E]);
+    if (d.X) items.push(['x', '공결', d.X]);
+    items.push(['none', '미체크', d.none]);
+    for (const [c, label, n] of items) counts.append(h('span', { class: c }, h('b', { class: 'tnum' }, n), label));
+    const pct = n => (d.total ? (n / d.total) * 100 : 0) + '%';
+    $('.p', bar).style.width = pct(d.P); $('.l', bar).style.width = pct(d.L); $('.e', bar).style.width = pct(d.E); $('.x', bar).style.width = pct(d.X);
+  }
+  renderRoster(sess);
+  const day = sess ? sessionsOnDate(sess.date) : [], cb = $('#closeBtn');
+  cb.disabled = !sess || sess.date > today;
+  cb.textContent = day.length && day.every(s => S.closed[s.id]) ? '↩ 마감 취소' : sess && sess.date === today ? '✅ 오늘 출석 마감' : '✅ 이날 출석 마감';
+}
+
+function renderRoster(sess) {
+  const box = $('#roster'), keep = box.scrollTop, day = sess ? sessionsOnDate(sess.date) : [];
+  box.innerHTML = '';
+  for (const st of studentsSorted()) {
+    const x = sess ? statusOf(sess.id, st.t) : { s: '' };
+    if (x.na) continue;
+    const label = !x.s ? '미체크' : x.auto ? '결석' : STATUS[x.s].label + (x.at && (x.s === 'P' || x.s === 'L') ? ' ' + x.at.slice(0, 5) : '');
+    // 이날 회차들(1부·2부)의 상태를 작은 칸으로
+    const dots = day.length > 1 ? h('span', { class: 'dots' }, ...day.map(s => {
+      const y = statusOf(s.id, st.t);
+      return h('i', { class: (y.s ? STATUS[y.s].cls : '') + (s.id === sess.id ? ' sel' : ''), title: `${sessionNo(s.id)}회차 ${y.s ? (y.auto ? '결석' : STATUS[y.s].label) : '미체크'}` }, sessionNo(s.id));
+    })) : '';
+    box.append(h('button', {
+      class: 'stu' + (x.s ? ' ' + STATUS[x.s].cls : '') + (x.auto ? ' auto' : ''), dataset: { t: st.t }, title: '눌러서 직접 체크',
+      onclick: e => { if (sess) openPop(e.currentTarget, sess.id, st.t, renderScanSide); }
+    }, h('span', { class: 'nm-row' }, h('span', { class: 'nm' }, st.name), dots), h('span', { class: 'cl' }, `${stuLabel(st)} · ${st.n}번`), h('span', { class: 'st tnum' }, label)));
+  }
+  box.scrollTop = keep;
+}
+
+function flashChip(t) {
+  const el = $(`.stu[data-t="${t}"]`);
+  if (!el) return;
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  el.scrollIntoView({ block: 'nearest' });
+}
+
+let lastPhaseKey = '';
+function tick() {
+  const t = now();
+  $('#clock').textContent = clock(t);
+  if (autoSelected) {
+    const c = currentSession();
+    if (c && c.id !== selectedId) selectedId = c.id;
+  }
+  const sess = sessionById(selectedId), cur = currentSession();
+  const key = (sess ? sess.id + sessionPhase(sess, t) + modeOf(sess)[1] : '') + (cur ? cur.id : '') + dateKey(t);
+  if (key !== lastPhaseKey) { lastPhaseKey = key; renderSessSelect(); if (currentTab === 'scan') renderScanSide(); }
+  else if (currentTab === 'scan') { const [c, txt] = phaseInfo(sess); $('#phase').className = 'phase ' + c; $('#phase').textContent = txt; }
+}
+
+// ── 소리 ──
+let actx = null;
+function beep(kind, force) {
+  if (!S.config.sound && !force) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const seq = { ok: [[880, 0, 0.13], [1318, 0.11, 0.26]], late: [[740, 0, 0.16], [554, 0.18, 0.28]], dup: [[1046, 0, 0.12]], bad: [[196, 0, 0.18], [196, 0.22, 0.24]] }[kind] || [];
+    const t0 = actx.currentTime;
+    for (const [f, at, len] of seq) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = kind === 'bad' ? 'square' : 'sine';
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t0 + at);
+      g.gain.exponentialRampToValueAtTime(kind === 'bad' ? 0.12 : 0.32, t0 + at + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + len);
+      o.connect(g).connect(actx.destination);
+      o.start(t0 + at); o.stop(t0 + at + len + 0.05);
+    }
+  } catch (e) { /* 소리를 못 내도 출석은 그대로 */ }
+}
+function speak(text) {
+  if (!S.config.voice || !window.speechSynthesis) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR'; u.rate = 1.15;
+    const ko = speechSynthesis.getVoices().find(v => /^ko/i.test(v.lang));
+    if (ko) u.voice = ko;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  } catch (e) { /* 무시 */ }
+}
+
+// ── 체크 결과 보여 주기 ──
+let resultTimer = 0;
+function showResult(r) {
+  const st = r.st, who = st ? `${st.g}학년 ${st.c}반 ${st.n}번` : '', line = st ? dayLine(st) : '';
+  let v;
+  switch (r.kind) {
+    case 'ok': v = { cls: 'ok', icon: '✅', name: st.name, who, msg: `출석 완료 · ${r.rec.at.slice(0, 5)}`, sub: line, sound: 'ok', say: `${st.name}, 출석` }; break;
+    case 'late': v = { cls: 'late', icon: '⏰', name: st.name, who, msg: `지각 · ${r.rec.at.slice(0, 5)}`, sub: line || `수업 시작 ${r.sess.start}`, sound: 'late', say: `${st.name}, 지각` }; break;
+    case 'dup': v = { cls: 'dup', icon: '☑️', name: st.name, who, msg: `이미 ${STATUS[r.rec.s].label}했어요${r.rec.at ? ` (${r.rec.at.slice(0, 5)})` : ''}`, sub: line || '한 번만 보여 주면 돼요', sound: 'dup' }; break;
+    case 'ended': v = { cls: 'dup', icon: '🏁', name: st.name, who, msg: '오늘 회차가 모두 끝났어요', sub: '기록하지 않았어요 · 필요하면 명단을 눌러 고치세요', sound: 'dup' }; break;
+    case 'practice': {
+      const today = dateKey(now()), todays = sessionsOnDate(today), sel = sessionById(selectedId);
+      let sub;
+      if (r.phase === 'before') sub = `출석 체크는 ${fromMin(dayOpenMin(today))}부터 기록돼요`;
+      else if (todays.length && (!sel || sel.date !== today)) sub = '오늘이 아닌 회차를 고른 상태예요 — 오른쪽 위에서 오늘 회차를 고르세요';
+      else if (!todays.length) { const nx = sessionsSorted().find(s => s.date > today); sub = '오늘은 수업일이 아니에요' + (nx ? ` · 다음 수업 ${fmtDate(nx.date)} ${nx.start}` : ''); }
+      else sub = '지난 회차는 명단을 눌러 고치세요';
+      v = { cls: 'practice', icon: '🧪', name: st.name, who, msg: '연습 모드 — 기록하지 않았어요', sub, sound: 'dup', say: st.name };
+      break;
+    }
+    case 'unknown': v = { cls: 'bad', icon: '⚠️', name: '등록되지 않은 카드', msg: '명단에 없는 카드예요', sub: `선생님께 카드를 보여 주세요 (${r.text})`, sound: 'bad' }; break;
+    default: v = { cls: 'bad', icon: '❓', name: '출석 카드가 아니에요', msg: '방과후 출석 카드의 QR을 보여 주세요', sub: String(r.text).slice(0, 48), sound: 'bad' };
+  }
+  const box = $('#result');
+  box.className = 'result ' + v.cls;
+  box.innerHTML = '';
+  box.append(h('div', { class: 'r-icon' }, v.icon), h('div', { class: 'r-name' }, v.name), v.who ? h('div', { class: 'r-who' }, v.who) : '',
+    h('div', { class: 'r-msg' }, v.msg), v.sub ? h('div', { class: 'r-sub' }, v.sub) : '');
+  void box.offsetWidth;
+  box.classList.add('show');
+  clearTimeout(resultTimer);
+  resultTimer = setTimeout(() => box.classList.remove('show'), r.kind === 'ok' ? 2000 : 2800);
+  beep(v.sound);
+  if (v.say) speak(v.say);
+}
+
+function addRecent(r) {
+  if (!r.st) return;
+  const box = $('#recent');
+  $('.recent-empty', box)?.remove();
+  const label = { ok: '출석', late: '지각', dup: '이미 체크', ended: '수업 끝' }[r.kind] || '연습';
+  const time = (r.rec && r.rec.at ? r.rec.at : clock(now())).slice(0, 5);
+  box.insertBefore(h('span', { class: 'chip ' + (r.kind === 'ok' ? 'p' : r.kind === 'late' ? 'l' : '') }, h('b', null, r.st.name), h('small', null, `${label} ${time}`)), $('.recent-label', box).nextSibling);
+  $$('.chip', box).slice(10).forEach(c => c.remove());
+}
+
+function onScanText(text) {
+  const r = checkIn(text, selectedId);
+  showResult(r);
+  addRecent(r);
+  if (r.kind === 'ok' || r.kind === 'late') { renderScanSide(); flashChip(r.st.t); }
+}
+
+// ── 카메라 ──
+function setCamState(text, cls) { const el = $('#camState'); el.textContent = text; el.className = 'cam-state' + (cls ? ' ' + cls : ''); }
+
+const CAM_ERR = {
+  NotAllowedError: '카메라 사용이 막혀 있어요.\n주소창 왼쪽의 자물쇠(또는 카메라) 아이콘을 눌러 "허용"으로 바꾼 뒤 다시 눌러 주세요.',
+  SecurityError: '카메라 사용이 막혀 있어요.\n주소창 왼쪽의 자물쇠(또는 카메라) 아이콘을 눌러 "허용"으로 바꾼 뒤 다시 눌러 주세요.',
+  NotFoundError: '카메라를 찾지 못했어요. 웹캠이 연결되어 있는지 확인해 주세요.\n카메라가 없어도 오른쪽 명단을 눌러 출석을 기록할 수 있어요.',
+  OverconstrainedError: '고른 카메라를 찾지 못했어요. 설정에서 다른 카메라를 골라 주세요.',
+  NotReadableError: '다른 프로그램(줌·팀즈 등)이 카메라를 쓰고 있어요.\n그 프로그램을 닫고 다시 눌러 주세요.',
+  AbortError: '다른 프로그램(줌·팀즈 등)이 카메라를 쓰고 있어요.\n그 프로그램을 닫고 다시 눌러 주세요.'
+};
+
+async function startCamera(deviceId) {
+  const msg = $('#camMsg');
+  msg.textContent = '';
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch (e) { /* 소리 없이 */ }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    msg.textContent = '이 브라우저에서는 카메라를 쓸 수 없어요.\nEdge나 Chrome으로 이 파일을 열어 주세요.\n(카메라 없이도 오른쪽 명단을 눌러 출석을 기록할 수 있어요)';
+    setCamState('카메라를 쓸 수 없음', 'err');
+    return false;
+  }
+  stopCamera(true);
+  setCamState('카메라 켜는 중…');
+  $('#startBtn').disabled = true;
+  const want = deviceId != null ? deviceId : S.config.deviceId;
+  const size = { width: { ideal: 1280 }, height: { ideal: 720 } };
+  const tries = want ? [Object.assign({ deviceId: { exact: want } }, size), Object.assign({ facingMode: 'user' }, size)] : [Object.assign({ facingMode: 'user' }, size), true];
+  let stream = null, err = null;
+  for (const video of tries) {
+    try { stream = await navigator.mediaDevices.getUserMedia({ video, audio: false }); break; } catch (e) {
+      err = e;
+      if (e.name === 'NotAllowedError' || e.name === 'SecurityError') break;
+    }
+  }
+  $('#startBtn').disabled = false;
+  if (!stream) {
+    msg.textContent = CAM_ERR[err && err.name] || `카메라를 켜지 못했어요 (${err ? err.name || err.message : '알 수 없음'}).`;
+    setCamState('카메라를 켜지 못함', 'err');
+    $('#camStart').hidden = false;
+    return false;
+  }
+  Cam.stream = stream;
+  const v = $('#video');
+  v.srcObject = stream;
+  try { await v.play(); } catch (e) { /* 자동 재생 막힘 → 메타데이터만 기다림 */ }
+  await new Promise(res => { if (v.videoWidth) res(); else { v.onloadedmetadata = () => res(); setTimeout(res, 3000); } });
+  const track = stream.getVideoTracks()[0], st = track && track.getSettings ? track.getSettings() : {};
+  Cam.deviceId = st.deviceId || '';
+  const ov = $('#overlay');
+  ov.width = v.videoWidth || 1280; ov.height = v.videoHeight || 720;
+  setCamState(`${(track && track.label) || '카메라'} · ${v.videoWidth}×${v.videoHeight}`, 'on');
+  $('#camStart').hidden = true;
+  $('#camBox').classList.add('live');
+  track.addEventListener('ended', () => { if (Cam.stream === stream) { stopCamera(); $('#camMsg').textContent = '카메라 연결이 끊겼어요. 다시 시작을 눌러 주세요.'; } });
+  listCameras();
+  initDetector();
+  requestWake();
+  scanLoop();
+  return true;
+}
+
+function stopCamera(keepUI) {
+  clearTimeout(Cam.timer);
+  if (Cam.stream) Cam.stream.getTracks().forEach(t => t.stop());
+  Cam.stream = null;
+  $('#video').srcObject = null;
+  const ov = $('#overlay');
+  ov.getContext('2d').clearRect(0, 0, ov.width, ov.height);
+  if (Cam.wake) { Cam.wake.release().catch(() => {}); Cam.wake = null; }
+  if (!keepUI) {
+    $('#camBox').classList.remove('live');
+    $('#camStart').hidden = false;
+    setCamState('카메라 꺼짐');
+  }
+}
+
+async function listCameras() {
+  try {
+    Cam.devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+  } catch (e) { Cam.devices = []; }
+  renderCameraSelect();
+}
+function renderCameraSelect() {
+  const sel = $('#setCamera');
+  sel.innerHTML = '';
+  sel.append(h('option', { value: '' }, '기본 카메라'));
+  Cam.devices.forEach((d, i) => sel.append(h('option', { value: d.deviceId }, d.label || `카메라 ${i + 1}`)));
+  sel.value = Cam.devices.some(d => d.deviceId === S.config.deviceId) ? S.config.deviceId : '';
+  $('#camSwitch').hidden = Cam.devices.length < 2;
+}
+async function switchCamera() {
+  if (Cam.devices.length < 2) { toast('다른 카메라가 없어요'); return; }
+  const i = Cam.devices.findIndex(d => d.deviceId === Cam.deviceId);
+  const next = Cam.devices[(i + 1) % Cam.devices.length];
+  S.config.deviceId = next.deviceId;
+  save();
+  if (await startCamera(next.deviceId)) toast(`카메라: ${next.label || '다음 카메라'}`);
+  renderCameraSelect();
+}
+
+async function initDetector() {
+  Cam.detector = null;
+  if (!('BarcodeDetector' in window)) return;
+  try {
+    const f = await window.BarcodeDetector.getSupportedFormats();
+    if (f.includes('qr_code')) Cam.detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+  } catch (e) { Cam.detector = null; }
+}
+async function requestWake() {
+  try { if (navigator.wakeLock) Cam.wake = await navigator.wakeLock.request('screen'); } catch (e) { /* 화면 꺼짐 방지는 선택 사항 */ }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Cam.stream && !Cam.wake) requestWake(); });
+
+// 한 장면 읽기: 전체 화면(줄여서)과 가운데 부분(원래 크기)을 번갈아 봅니다 → 멀리·가까이 모두 잘 읽힘
+async function scanFrame() {
+  const v = $('#video'), vw = v.videoWidth, vh = v.videoHeight;
+  if (!vw || v.readyState < 2) return [];
+  if (Cam.detector) {
+    try {
+      const r = await Cam.detector.detect(v);
+      return r.map(b => ({ text: b.rawValue, corners: (b.cornerPoints || []).map(p => [p.x, p.y]) }));
+    } catch (e) { Cam.detector = null; }
+  }
+  Cam.frame++;
+  let sx = 0, sy = 0, sw = vw, sh = vh;
+  if (Cam.frame % 2 === 0 && vw >= 960) {
+    sw = Math.round(vw * 0.56); sh = Math.round(vh * 0.56); sx = Math.round((vw - sw) / 2); sy = Math.round((vh - sh) / 2);
+  }
+  const scale = Math.min(1, 800 / sw), w = Math.round(sw * scale), hh = Math.round(sh * scale);
+  if (!Cam.canvas) Cam.canvas = document.createElement('canvas');
+  if (Cam.canvas.width !== w || Cam.canvas.height !== hh || !Cam.ctx) {
+    Cam.canvas.width = w; Cam.canvas.height = hh;
+    Cam.ctx = Cam.canvas.getContext('2d', { willReadFrequently: true });
+  }
+  Cam.ctx.drawImage(v, sx, sy, sw, sh, 0, 0, w, hh);
+  const img = Cam.ctx.getImageData(0, 0, w, hh);
+  return QRDecode.decodeRGBA(img.data, w, hh).map(r => ({ text: r.text, corners: r.corners.map(([x, y]) => [sx + x / scale, sy + y / scale]) }));
+}
+
+function drawOverlay(found) {
+  const ov = $('#overlay'), g = ov.getContext('2d'), t = performance.now();
+  if (!found.length && t < Cam.drawn) return;
+  g.clearRect(0, 0, ov.width, ov.height);
+  if (!found.length) return;
+  Cam.drawn = t + 450;
+  for (const f of found) {
+    if (f.corners.length < 4) continue;
+    g.beginPath();
+    f.corners.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.closePath();
+    g.lineWidth = Math.max(4, ov.width / 180);
+    g.strokeStyle = '#3ddc97';
+    g.shadowColor = 'rgba(61,220,151,.9)';
+    g.shadowBlur = 18;
+    g.stroke();
+    g.fillStyle = 'rgba(61,220,151,.16)';
+    g.fill();
+  }
+}
+
+async function scanLoop() {
+  clearTimeout(Cam.timer);
+  if (!Cam.stream) return;
+  const t0 = performance.now();
+  let found = [];
+  try { found = await scanFrame(); } catch (e) { found = []; }
+  if (!Cam.stream) return;
+  drawOverlay(found);
+  const t = performance.now();
+  for (const f of found) {
+    const prev = Cam.lastSeen.get(f.text);
+    Cam.lastSeen.set(f.text, t);
+    if (prev && t - prev < 2500) continue;         // 카드를 계속 들고 있는 동안은 한 번만
+    onScanText(f.text);
+  }
+  Cam.timer = setTimeout(scanLoop, Math.max(25, 110 - (performance.now() - t0)));
+}
+
+// USB 바코드 리더기·키보드 입력 (예: AS26-ABCD + Enter) — 한글 입력 상태여도 자판 위치로 읽음
+let kbBuf = '', kbTime = 0;
+function keyChar(e) {
+  if (/^Key[A-Z]$/.test(e.code)) return e.code.slice(3);
+  if (/^(Digit|Numpad)[0-9]$/.test(e.code)) return e.code.slice(-1);
+  if (e.code === 'Minus' || e.code === 'NumpadSubtract') return '-';
+  return e.key && e.key.length === 1 ? e.key.toUpperCase() : '';
+}
+document.addEventListener('keydown', e => {
+  if (currentTab !== 'scan' || e.ctrlKey || e.altKey || e.metaKey) return;
+  const tag = (e.target && e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'select' || tag === 'textarea' || $('#dialog').open) return;
+  const t = performance.now();
+  if (t - kbTime > 2000) kbBuf = '';
+  kbTime = t;
+  if (e.key === 'Enter') {
+    const code = kbBuf.trim();
+    kbBuf = '';
+    if (/^[A-Z0-9]{2,8}-[A-Z0-9]{4}$/.test(code)) { e.preventDefault(); onScanText(code); }
+    return;
+  }
+  const c = keyChar(e);
+  if (c) kbBuf = (kbBuf + c).slice(-20);
+});
+
+function saveXlsx() {
+  download(`${S.config.title}_출석부_${dateKey(now())}.xlsx`, attendanceWorkbook());
+  toast('엑셀 파일을 저장했어요 (다운로드 폴더)');
+}
+
+async function closeSession() {
+  const sess = sessionById(selectedId);
+  if (!sess) return;
+  const day = sessionsOnDate(sess.date), nos = day.map(s => sessionNo(s.id)).join('·') + '회차';
+  if (day.every(s => S.closed[s.id])) {
+    day.forEach(s => { delete S.closed[s.id]; });
+    save();
+    renderScanSide();
+    toast('마감을 취소했어요');
+    return;
+  }
+  const left = day.map(s => [sessionNo(s.id), daySummary(s.id).none]).filter(([, n]) => n);
+  const go = await ask(`${fmtDate(sess.date)} 출석을 마감할까요? (${nos})`,
+    left.length ? `아직 체크하지 않은 칸은 <b>결석</b>으로 표시됩니다: ${left.map(([no, n]) => `<b>${no}회차 ${n}명</b>`).join(', ')}<br>마감한 뒤에도 명단이나 출석부에서 언제든 고칠 수 있어요.`
+      : '모든 학생이 체크되었어요. 마감한 뒤에도 기록은 고칠 수 있어요.', '마감하기');
+  if (!go) return;
+  day.forEach(s => { S.closed[s.id] = true; });
+  save();
+  renderScanSide();
+  if (await ask('엑셀 파일로도 저장할까요?', '지금까지의 출석부를 엑셀 파일로 받아 둡니다.<br>컴퓨터의 <b>다운로드</b> 폴더에 저장돼요.', '엑셀 저장')) saveXlsx();
+}
+
+function initScan() {
+  $('#startBtn').onclick = () => startCamera();
+  $('#camStop').onclick = () => stopCamera();
+  $('#camSwitch').onclick = switchCamera;
+  $('#camSwitch').hidden = true;
+  $('#sessSelect').onchange = e => { selectedId = e.target.value || null; autoSelected = false; lastPhaseKey = ''; renderScanSide(); };
+  $('#closeBtn').onclick = closeSession;
+  $('#xlsxBtn2').onclick = saveXlsx;
+  const snd = $('#tglSound'), vc = $('#tglVoice');
+  snd.checked = S.config.sound; vc.checked = S.config.voice;
+  snd.onchange = () => { S.config.sound = snd.checked; save(); renderSettings(); };
+  vc.onchange = () => { S.config.voice = vc.checked; save(); renderSettings(); if (vc.checked) speak('이름 읽어 주기를 켰어요'); };
+  $('#camBox').classList.toggle('mirror', S.config.mirror);
+  pickDefaultSession();
+  renderSessSelect();
+  tabRenderers.scan = () => { renderSessSelect(); renderScanSide(); };
+}
+
+
+/* ===== 54-ui-sheet.js ===== */
+/* 출석부: 학생 × 회차 전체 현황 (날짜 아래에 그날의 회차들) */
+function cellView(x) {
+  if (x.na) return { cls: 'na', text: '—', small: '' };
+  if (!x.s) return { cls: '', text: '·', small: '' };
+  if (x.auto) return { cls: 'a auto', text: '결석', small: '' };
+  return { cls: STATUS[x.s].cls, text: STATUS[x.s].mark, small: x.at && (x.s === 'P' || x.s === 'L') ? x.at.slice(0, 5) : '' };
+}
+
+function sheetRangeText() {
+  const days = dayList(), n = S.sessions.length;
+  if (!days.length) return '수업 회차 없음';
+  const per = days.every(d => d.sessions.length === days[0].sessions.length) && days[0].sessions.length > 1 ? ` (하루 ${days[0].sessions.length}회차)` : '';
+  return `${fmtDate(days[0].date)} ~ ${fmtDate(days[days.length - 1].date)} · ${days.length}일 · 총 ${n}회차${per}`;
+}
+
+function renderSheet() {
+  const days = dayList(), sessions = sessionsSorted(), students = studentsSorted(), today = dateKey(now());
+  $('#sheetSub').textContent = `${S.config.term} · ${sheetRangeText()} · ${students.length}명`;
+  $('#legend').innerHTML = '';
+  for (const k of STATUS_ORDER) $('#legend').append(h('span', null, h('i', { style: `background:var(--${STATUS[k].cls})` }), STATUS[k].label));
+
+  const table = $('#sheet');
+  table.innerHTML = '';
+  const thead = h('thead'), r1 = h('tr'), r2 = h('tr');
+  r1.append(h('th', { class: 'fix c1', rowspan: 2 }, '반'), h('th', { class: 'fix c2', rowspan: 2 }, '번호'), h('th', { class: 'fix c3', rowspan: 2 }, '이름'));
+  for (const d of days) {
+    const closed = d.sessions.every(s => S.closed[s.id]);
+    r1.append(h('th', { colspan: d.sessions.length, class: 'day' + (d.date === today ? ' today' : '') + (closed ? ' closed' : '') }, fmtDate(d.date)));
+    for (const s of d.sessions) r2.append(h('th', { class: 'part' + (d.date === today ? ' today' : ''), title: `${s.start}~${s.end}${s.note ? ' · ' + s.note : ''}` }, `${sessionNo(s.id)}회차`, h('small', null, s.start)));
+  }
+  ['출석', '지각', '조퇴', '결석', '공결', '참여율'].forEach(t => r1.append(h('th', { rowspan: 2 }, t)));
+  thead.append(r1, r2);
+  const tbody = h('tbody');
+  for (const st of students) {
+    const tr = h('tr');
+    tr.append(h('td', { class: 'fix c1 tnum' }, stuLabel(st)), h('td', { class: 'fix c2 tnum' }, st.n), h('td', { class: 'fix c3' }, st.name));
+    for (const s of sessions) {
+      const x = statusOf(s.id, st.t), v = cellView(x);
+      const btn = h('button', { class: 'cell ' + v.cls, disabled: x.na, title: x.na ? '이 학생을 추가하기 전 회차' : `${st.name} · ${sessionNo(s.id)}회차 ${fmtDate(s.date)} ${s.start} — 눌러서 바꾸기` },
+        v.text, v.small ? h('small', { class: 'tnum' }, v.small) : '');
+      if (!x.na) btn.onclick = e => openPop(e.currentTarget, s.id, st.t, renderSheet);
+      const first = sessionsOnDate(s.date)[0].id === s.id;
+      tr.append(h('td', { class: (s.date === today ? 'today' : '') + (first ? ' dstart' : '') }, btn));
+    }
+    const sum = summaryOf(st.t);
+    const full = sum.held === sessions.length && sessions.length > 0 && sum.attended + sum.X === sum.held;
+    tr.append(...['P', 'L', 'E', 'A', 'X'].map(k => h('td', { class: 'sum tnum' }, sum[k] || '')),
+      h('td', { class: 'sum rate tnum' + (full ? ' full' : ''), title: full ? '모든 회차 참여' : '' }, sum.rate == null ? '—' : Math.round(sum.rate * 100) + '%'));
+    tbody.append(tr);
+  }
+  const tfoot = h('tfoot'), fr = h('tr');
+  fr.append(h('td', { class: 'fix c1' }, ''), h('td', { class: 'fix c2' }, ''), h('td', { class: 'fix c3' }, '참여 인원'));
+  for (const s of sessions) {
+    const d = daySummary(s.id), any = d.total - d.none;
+    fr.append(h('td', { class: 'tnum' }, any ? `${d.P + d.L + d.E}/${d.total}` : ''));
+  }
+  for (let i = 0; i < 6; i++) fr.append(h('td'));
+  tfoot.append(fr);
+  table.append(thead, tbody, tfoot);
+  // 둘째 머리줄이 첫째 줄 바로 아래에 붙어 있도록
+  const top = r1.getBoundingClientRect().height;
+  if (top) $$('th', r2).forEach(th => { th.style.top = top + 'px'; });
+}
+
+function printSheet() {
+  const days = dayList(), sessions = sessionsSorted(), students = studentsSorted();
+  let html = `<div class="print-sheet"><h1>${esc(S.config.title)} 출석부</h1><p>${esc(S.config.term)} · ${esc(sheetRangeText())} · ${students.length}명 · ${dateKey(now())} ${clock(now()).slice(0, 5)} 기준</p>` +
+    '<table><thead><tr><th rowspan="2">반</th><th rowspan="2">번호</th><th rowspan="2">이름</th>';
+  for (const d of days) html += `<th colspan="${d.sessions.length}">${esc(fmtDate(d.date))}</th>`;
+  html += '<th rowspan="2">출석</th><th rowspan="2">지각</th><th rowspan="2">조퇴</th><th rowspan="2">결석</th><th rowspan="2">공결</th><th rowspan="2">참여율</th></tr><tr>';
+  for (const s of sessions) html += `<th>${sessionNo(s.id)}</th>`;
+  html += '</tr></thead><tbody>';
+  for (const st of students) {
+    html += `<tr><td>${esc(stuLabel(st))}</td><td>${st.n}</td><td class="n">${esc(st.name)}</td>`;
+    for (const s of sessions) {
+      const x = statusOf(s.id, st.t), v = cellView(x);
+      html += `<td class="${v.cls}">${x.s || x.na ? esc(v.text) : ''}</td>`;
+    }
+    const sum = summaryOf(st.t);
+    html += ['P', 'L', 'E', 'A', 'X'].map(k => `<td>${sum[k] || ''}</td>`).join('') + `<td>${sum.rate == null ? '' : Math.round(sum.rate * 100) + '%'}</td></tr>`;
+  }
+  html += '</tbody><tfoot><tr><td colspan="3">참여 인원</td>';
+  for (const s of sessions) { const d = daySummary(s.id), any = d.total - d.none; html += `<td>${any ? d.P + d.L + d.E : ''}</td>`; }
+  html += '<td colspan="6"></td></tr></tfoot></table><p style="margin-top:3mm">숫자 = 회차 · ○ 출석 · 연한 결석 = 체크 기록 없이 끝난 회차 · 참여율 = (출석+지각+조퇴) ÷ (진행된 회차 − 공결)</p></div>';
+  printPages(html, true);
+}
+
+function initSheet() {
+  $('#xlsxBtn').onclick = saveXlsx;
+  $('#printSheetBtn').onclick = printSheet;
+  tabRenderers.sheet = renderSheet;
+}
+
+
+/* ===== 56-ui-cards.js ===== */
+/* QR 출석 카드 · 스티커 인쇄 */
+let cardLayout = 'card';
+let cardPicked = null;        // 인쇄할 학생 코드 모음 (null = 모두)
+const svgCache = new Map();
+
+function qrSvg(st) {
+  const text = cardText(st);
+  if (!svgCache.has(text)) svgCache.set(text, QR.toSVG(QR.encode(text, { ecl: 'H' }), { margin: 2 }));
+  return svgCache.get(text);
+}
+
+// 수업 일정 요약 (카드·사용 방법에 씀): 날 단위로 묶어서 요일·시간·예외인 날을 찾습니다
+function scheduleSummary() {
+  const dl = dayList();
+  if (!dl.length) return null;
+  const days = [...new Set(dl.map(d => parseDate(d.date).getDay()))].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map(d => WEEK[d]).join('·');
+  const cnt = {};
+  dl.forEach(d => { const k = `${d.start}~${d.end}`; cnt[k] = (cnt[k] || 0) + 1; });
+  const time = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0][0];
+  const md = s => { const d = parseDate(s); return `${d.getMonth() + 1}.${pad2(d.getDate())}`; };
+  const per = dl.every(d => d.sessions.length === dl[0].sessions.length) ? dl[0].sessions.length : 0;
+  return { days, time, range: `${md(dl[0].date)}~${md(dl[dl.length - 1].date)}`, count: S.sessions.length, per, exceptions: dl.filter(d => `${d.start}~${d.end}` !== time) };
+}
+
+function cardHtml(st) {
+  const sc = scheduleSummary();
+  let when = '';
+  if (sc) {
+    when = `<b>${esc(sc.days)} ${esc(sc.time)}</b><br>${esc(sc.range)} · 총 ${sc.count}회차${sc.per > 1 ? ` (하루 ${sc.per}회차)` : ''}`;
+    if (sc.exceptions.length === 1) when += `<br>${esc(fmtDate(sc.exceptions[0].date))}만 <b>${esc(sc.exceptions[0].start)}~${esc(sc.exceptions[0].end)}</b>`;
+    else if (sc.exceptions.length > 1) when += '<br>시간이 다른 날이 있어요 · 선생님 안내 확인';
+  }
+  return `<div class="qcard"><div class="band"><b>${esc(S.config.title)}</b><span>${esc(S.config.term)}</span></div>` +
+    `<div class="info"><div class="who">${st.g}학년 ${st.c}반 ${st.n}번</div><div class="name">${esc(st.name)}</div>` +
+    `<div class="when">${when}</div><div class="use">출석할 때 이 QR을 카메라에 보여 주세요</div></div>` +
+    `<div class="qr">${qrSvg(st)}<div class="code">${esc(cardText(st))}</div></div></div>`;
+}
+function stickerHtml(st) {
+  return `<div class="qsticker">${qrSvg(st)}<div class="s-info"><div class="s-title">${esc(S.config.title)}</div>` +
+    `<div class="s-name">${esc(st.name)}</div><div class="s-who">${st.g}학년 ${st.c}반 ${st.n}번</div><div class="code">${esc(cardText(st))}</div></div></div>`;
+}
+
+const pickedList = () => studentsSorted().filter(s => !cardPicked || cardPicked.has(s.t));
+
+function renderCards() {
+  $$('#cardLayout button').forEach(b => b.classList.toggle('on', b.dataset.layout === cardLayout));
+  const box = $('#cardPreview');
+  box.innerHTML = '';
+  for (const st of studentsSorted()) {
+    const on = !cardPicked || cardPicked.has(st.t);
+    const cb = h('input', { type: 'checkbox', checked: on, 'aria-label': `${st.name} 인쇄` });
+    const wrap = h('label', { class: 'pick' + (on ? '' : ' off'), html: cardLayout === 'card' ? cardHtml(st) : stickerHtml(st) });
+    wrap.prepend(h('span', { class: 'pick-head' }, cb, `${st.name} 인쇄`));
+    cb.onchange = () => {
+      if (!cardPicked) cardPicked = new Set(S.students.map(s => s.t));
+      cb.checked ? cardPicked.add(st.t) : cardPicked.delete(st.t);
+      wrap.classList.toggle('off', !cb.checked);
+      renderCardCount();
+    };
+    box.append(wrap);
+  }
+  renderCardCount();
+}
+function renderCardCount() {
+  const n = pickedList().length, per = cardLayout === 'card' ? 10 : 24;
+  $('#cardCount').textContent = `${n}명 선택 · A4 ${Math.ceil(n / per) || 0}장`;
+  $('#printCardsBtn').disabled = !n;
+}
+
+function cardPagesHtml(layout = cardLayout, list = pickedList()) {
+  const per = layout === 'card' ? 10 : 24;
+  let html = '';
+  for (let i = 0; i < list.length; i += per) {
+    const chunk = list.slice(i, i + per);
+    html += layout === 'card'
+      ? `<div class="print-page cards">${chunk.map(cardHtml).join('')}</div>`
+      : `<div class="print-page stickers">${chunk.map(st => `<div class="slot">${stickerHtml(st)}</div>`).join('')}</div>`;
+  }
+  return html;
+}
+
+function initCards() {
+  $$('#cardLayout button').forEach(b => { b.onclick = () => { cardLayout = b.dataset.layout; renderCards(); }; });
+  $('#cardAll').onclick = () => { cardPicked = null; renderCards(); };
+  $('#cardNone').onclick = () => { cardPicked = new Set(); renderCards(); };
+  $('#printCardsBtn').onclick = () => { if (pickedList().length) printPages(cardPagesHtml(), false); };
+  tabRenderers.cards = renderCards;
+}
+
+
+/* ===== 58-ui-settings.js ===== */
+/* 설정: 출석 규칙 · 카메라 · 명단 · 수업 날짜 · 백업 */
+function renderRuleExample() {
+  const ss = sessionsSorted(), sess = ss.find(s => s.start === '15:30') || ss[0];
+  if (!sess) { $('#ruleExample').textContent = ''; return; }
+  const st = toMin(sess.start), g = S.config.lateGrace, day = sessionsOnDate(sess.date);
+  const open = S.config.openBefore >= 1440 ? '수업 날 하루 종일' : `${fromMin(dayOpenMin(sess.date))}부터`;
+  let txt = `예) ${esc(sess.start)} 시작 회차: <b>${open}</b> 체크를 받고, <b>${fromMin(st + g)}까지 출석</b>, <b>${fromMin(st + g + 1)}부터 지각</b>입니다.`;
+  if (day.length > 1) {
+    const s2 = day[1];
+    txt += S.config.scanEach
+      ? ` 회차마다 다시 찍어야 하고, ${esc(s2.start)} 회차는 <b>${fromMin(toMin(s2.start) + g)}까지 출석</b>이에요.`
+      : ` QR을 한 번 찍으면 그날 남은 회차(${esc(s2.start)}~${esc(s2.end)})도 <b>함께 출석</b>으로 기록돼요. 중간에 간 학생은 명단에서 조퇴로 바꾸세요.`;
+  }
+  $('#ruleExample').innerHTML = txt + ' 체크 시작 전에는 연습 모드(기록 안 됨)로 동작해요.';
+}
+
+function renderSettings() {
+  $('#setOpen').value = String(S.config.openBefore);
+  $('#setGrace').value = String(S.config.lateGrace);
+  $('#setScanMode').value = S.config.scanEach ? 'each' : 'day';
+  $('#setMirror').checked = S.config.mirror;
+  $('#setSound').checked = S.config.sound;
+  $('#setVoice').checked = S.config.voice;
+  $('#tglSound').checked = S.config.sound;
+  $('#tglVoice').checked = S.config.voice;
+  if (document.activeElement !== $('#setTitle')) $('#setTitle').value = S.config.title;
+  if (document.activeElement !== $('#setTerm')) $('#setTerm').value = S.config.term;
+  renderRuleExample();
+  renderCameraSelect();
+  renderStudentTable();
+  renderSessionTable();
+  const kb = new Blob([JSON.stringify(S)]).size / 1024;
+  $('#storeInfo').textContent = storageOK
+    ? `자동 저장됨 · 마지막 저장 ${S.updated ? new Date(S.updated).toLocaleString('ko-KR') : '없음'} · ${kb.toFixed(1)}KB`
+    : '⚠ 이 브라우저에서는 자동 저장이 되지 않습니다. 수업이 끝나면 꼭 엑셀·백업 파일로 저장하세요.';
+}
+
+function renderStudentTable() {
+  const t = $('#stuTable');
+  t.innerHTML = '';
+  t.append(h('thead', null, h('tr', null, h('th', null, '학년'), h('th', null, '반'), h('th', null, '번호'), h('th', null, '이름'), h('th', null, '카드 코드'), h('th', null, '출석 현황'), h('th', null, ''))));
+  const tb = h('tbody');
+  for (const st of studentsSorted()) {
+    const num = (k, min, max) => h('input', { type: 'number', min, max, value: st[k], onchange: e => { const v = +e.target.value; if (v >= min && v <= max) { st[k] = v; save(); afterRosterChange(); } else e.target.value = st[k]; } });
+    const sum = summaryOf(st.t);
+    tb.append(h('tr', null,
+      h('td', null, num('g', 1, 6)), h('td', null, num('c', 1, 20)), h('td', null, num('n', 1, 60)),
+      h('td', null, h('input', { value: st.name, maxlength: 20, onchange: e => { const v = e.target.value.trim(); if (v) { st.name = v; save(); afterRosterChange(); } else e.target.value = st.name; } })),
+      h('td', { class: 'mono' }, cardText(st)),
+      h('td', { class: 'mono' }, sum.held ? `참여 ${sum.attended}/${sum.held}` : '—'),
+      h('td', null, h('button', { class: 'del', title: '이 학생 지우기', onclick: () => delStudent(st) }, '✕'))));
+  }
+  t.append(tb);
+  $('#stuCount').textContent = `${S.students.length}명`;
+}
+
+async function delStudent(st) {
+  const sum = summaryOf(st.t);
+  if (!await ask(`${st.name} 학생을 지울까요?`, `${stuLabel(st)}반 ${st.n}번 ${esc(st.name)} 학생을 명단에서 지웁니다.${sum.held ? `<br>이 학생의 출석 기록(${sum.held}회분)도 함께 지워져요.` : ''}<br>중간에 그만둔 학생이면 지우지 말고 출석부에 <b>결석</b>으로 두는 방법도 있어요.`, '지우기', true)) return;
+  removeStudent(st.t);
+  afterRosterChange();
+  toast(`${st.name} 학생을 지웠어요`);
+}
+
+function afterRosterChange() {
+  renderStudentTable();
+}
+
+function renderSessionTable() {
+  const t = $('#sessTable');
+  t.innerHTML = '';
+  t.append(h('thead', null, h('tr', null, h('th', null, '회차'), h('th', null, '날짜'), h('th', null, '시작'), h('th', null, '끝'), h('th', null, '메모'), h('th', null, '기록'), h('th', null, ''))));
+  const tb = h('tbody');
+  for (const s of sessionsSorted()) {
+    const time = k => h('input', { type: 'time', value: s[k], onchange: e => {
+      const v = e.target.value;
+      const ok = /^\d\d:\d\d$/.test(v) && (k === 'start' ? toMin(v) < toMin(s.end) : toMin(v) > toMin(s.start));
+      if (ok) { s[k] = v; save(); renderRuleExample(); renderHelpSched(); lastPhaseKey = ''; } else { e.target.value = s[k]; toast('시작 시각은 끝 시각보다 빨라야 해요', 'warn'); }
+    } });
+    const first = sessionsOnDate(s.date)[0].id === s.id, n = Object.keys(S.records[s.id] || {}).length, d = daySummary(s.id);
+    tb.append(h('tr', { class: first ? 'dstart' : '' }, h('td', { class: 'mono' }, `${sessionNo(s.id)}회차`),
+      h('td', null, first ? fmtDate(s.date, true) + ' ' : '', h('small', { class: 'part' }, `${partOf(s)}부`)), h('td', null, time('start')), h('td', null, time('end')),
+      h('td', null, h('input', { value: s.note || '', maxlength: 40, placeholder: '메모', onchange: e => { s.note = e.target.value.trim(); save(); } })),
+      h('td', { class: 'mono' }, n ? `${n}명 기록` : (d.total - d.none ? '자동 결석' : '—')),
+      h('td', null, h('button', { class: 'del', title: '이 회차 지우기', onclick: () => delSession(s) }, '✕'))));
+  }
+  t.append(tb);
+  $('#sessCount').textContent = `${S.sessions.length}회차 · ${dayList().length}일`;
+  renderHelpSched();
+}
+
+async function delSession(s) {
+  const n = S.records[s.id] ? Object.keys(S.records[s.id]).length : 0;
+  if (!await ask(`${sessionNo(s.id)}회차를 지울까요?`, `${fmtDate(s.date, true)} ${s.start}~${s.end}<br>` + (n ? `이 회차 출석 기록 <b>${n}명분</b>도 함께 지워집니다. 뒤 회차 번호는 하나씩 당겨져요.` : '수업 회차 목록에서 지웁니다. 뒤 회차 번호는 하나씩 당겨져요.'), '지우기', true)) return;
+  S.sessions = S.sessions.filter(x => x.id !== s.id);
+  delete S.records[s.id];
+  delete S.closed[s.id];
+  save();
+  if (selectedId === s.id) pickDefaultSession();
+  renderSessionTable();
+  renderSessSelect();
+  toast('회차를 지웠어요');
+}
+
+// 날짜 하나 추가: 반으로 나누면 2회차, 아니면 1회차. 그날 있는 회차와 시간이 겹치면 안 됨
+function addSessions(date, start, end, note, split) {
+  const parts = split ? splitDay(date, start, end, note) : [{ date, start, end, note }];
+  const existing = sessionsOnDate(date);
+  if (parts.some(p => existing.some(s => toMin(p.start) < toMin(s.end) && toMin(s.start) < toMin(p.end)))) return false;
+  let n = existing.reduce((m, s) => Math.max(m, +s.id.split('-')[3] || 0), 0);
+  for (const p of parts) S.sessions.push({ id: `${date}-${++n}`, date, start: p.start, end: p.end, note: p.note || '' });
+  save();
+  return true;
+}
+
+function renderHelpSched() {
+  const box = $('#helpSched');
+  box.innerHTML = '';
+  const sc = scheduleSummary();
+  for (const d of dayList()) {
+    const odd = sc && sc.exceptions.some(x => x.date === d.date);
+    box.append(h('div', { class: odd ? 'first' : '' }, h('b', null, `${d.sessions.map(s => sessionNo(s.id)).join('·')}회차 · ${fmtDate(d.date)}`),
+      d.sessions.map(s => `${s.start}~${s.end}`).join(' / '), d.sessions[0].note ? h('div', null, d.sessions[0].note) : ''));
+  }
+}
+
+function initSettings() {
+  const num = (id, key) => { $(id).onchange = e => { S.config[key] = +e.target.value; save(); renderRuleExample(); lastPhaseKey = ''; }; };
+  num('#setOpen', 'openBefore');
+  num('#setGrace', 'lateGrace');
+  $('#setScanMode').onchange = e => { S.config.scanEach = e.target.value === 'each'; save(); renderRuleExample(); lastPhaseKey = ''; };
+  $('#setMirror').onchange = e => { S.config.mirror = e.target.checked; save(); $('#camBox').classList.toggle('mirror', S.config.mirror); };
+  $('#setSound').onchange = e => { S.config.sound = e.target.checked; save(); $('#tglSound').checked = S.config.sound; };
+  $('#setVoice').onchange = e => { S.config.voice = e.target.checked; save(); $('#tglVoice').checked = S.config.voice; };
+  $('#setCamera').onchange = e => { S.config.deviceId = e.target.value; save(); if (Cam.stream) startCamera(S.config.deviceId); };
+  $('#testSound').onclick = () => {
+    beep('ok', true);
+    setTimeout(() => beep('late', true), 700);
+    if (S.config.voice) setTimeout(() => speak('홍길동, 출석'), 1400);
+  };
+  const text = (id, key) => { $(id).oninput = e => { S.config[key] = e.target.value.trim() || DEFAULT_CONFIG[key]; save(); renderTitle(); }; };
+  text('#setTitle', 'title');
+  text('#setTerm', 'term');
+
+  $('#stuAdd').onsubmit = e => {
+    e.preventDefault();
+    const g = +$('#addG').value, c = +$('#addC').value, n = +$('#addN').value, name = $('#addName').value.trim();
+    if (!name || !(g >= 1 && g <= 6) || !(c >= 1 && c <= 20) || !(n >= 1 && n <= 60)) { toast('학년·반·번호·이름을 확인해 주세요', 'warn'); return; }
+    if (S.students.some(s => s.g === g && s.c === c && s.n === n)) { toast(`${g}학년 ${c}반 ${n}번은 이미 명단에 있어요`, 'warn'); return; }
+    const st = addStudent(g, c, n, name);
+    $('#addC').value = ''; $('#addN').value = ''; $('#addName').value = '';
+    afterRosterChange();
+    toast(`${st.name} 학생을 추가했어요 · QR 카드 탭에서 카드를 인쇄하세요`);
+  };
+  $('#sessAdd').onsubmit = e => {
+    e.preventDefault();
+    const date = $('#addDate').value, start = $('#addStart').value, end = $('#addEnd').value, note = $('#addNote').value.trim(), split = $('#addSplit').checked;
+    if (!/^\d{4}-\d\d-\d\d$/.test(date) || !start || !end) { toast('날짜와 시간을 확인해 주세요', 'warn'); return; }
+    if (toMin(start) >= toMin(end)) { toast('시작 시각은 끝 시각보다 빨라야 해요', 'warn'); return; }
+    if (!addSessions(date, start, end, note, split)) { toast('그날 이미 있는 회차와 시간이 겹쳐요', 'warn'); return; }
+    $('#addDate').value = ''; $('#addNote').value = '';
+    renderSessionTable();
+    if (autoSelected) pickDefaultSession();
+    lastPhaseKey = '';
+    renderSessSelect();
+    toast(`${fmtDate(date, true)} 수업을 ${split ? '2회차로 ' : ''}추가했어요`);
+  };
+
+  $('#rosterExportBtn').onclick = () => { download(`${S.config.title}_출석명단_태블릿용.json`.replace(/\s+/g, '_'), rosterBlob()); toast('명단 파일을 저장했어요 (다운로드 폴더) · 구글 드라이브에 올려 태블릿에서 불러오세요'); };
+  $('#rosterImportBtn').onclick = () => $('#rosterFile').click();
+  $('#rosterFile').onchange = async e => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    try { await loadRosterFile(f, true); } catch (err) { toast('불러오지 못했어요: ' + err.message, 'warn'); }
+  };
+  $('#backupBtn').onclick = () => { download(`${S.config.title}_출석백업_${dateKey(now())}.json`, backupBlob()); toast('백업 파일을 저장했어요 (다운로드 폴더)'); };
+  $('#restoreBtn').onclick = () => $('#restoreFile').click();
+  $('#restoreFile').onchange = async e => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    try {
+      const text = await f.text();
+      const d = JSON.parse(text);
+      if (!d || d.app !== 'qr-attendance') throw new Error('이 프로그램의 백업 파일이 아니에요');
+      const st = normalize(d.state);
+      const recs = Object.values(st.records).reduce((n, r) => n + Object.keys(r).length, 0);
+      if (!await ask('백업을 불러올까요?', `<b>${esc(f.name)}</b><br>학생 ${st.students.length}명 · 수업 ${st.sessions.length}회 · 출석 기록 ${recs}개<br>지금 이 컴퓨터에 있는 기록은 백업 내용으로 <b>바뀝니다</b>.`, '불러오기')) return;
+      restoreFrom(text);
+      svgCache.clear();
+      pickDefaultSession();
+      refreshAll();
+      toast('백업을 불러왔어요');
+    } catch (err) {
+      toast('불러오지 못했어요: ' + err.message, 'warn');
+    }
+  };
+  $('#clearRecords').onclick = async () => {
+    if (!await ask('출석 기록을 모두 지울까요?', '모든 수업의 출석·지각·결석 기록과 마감 표시가 지워집니다. 명단과 날짜는 그대로예요.<br><b>되돌릴 수 없으니</b> 먼저 백업 파일을 저장해 두세요.', '모두 지우기', true)) return;
+    S.records = {};
+    S.closed = {};
+    save();
+    refreshAll();
+    toast('출석 기록을 모두 지웠어요');
+  };
+  $('#resetAll').onclick = async () => {
+    if (!await ask('처음 상태로 되돌릴까요?', '명단·수업 날짜·설정이 처음 받은 상태(30명, 10회)로 돌아가고 <b>출석 기록도 모두 지워집니다</b>.<br>되돌릴 수 없으니 먼저 백업 파일을 저장해 두세요.', '되돌리기', true)) return;
+    S = freshState();
+    save();
+    svgCache.clear();
+    pickDefaultSession();
+    refreshAll();
+    toast('처음 상태로 되돌렸어요');
+  };
+  tabRenderers.settings = renderSettings;
+}
+
+
+/* ===== 90-main.js ===== */
+/* 시작 */
+function refreshAll() {
+  renderTitle();
+  renderSaveBadge();
+  renderSessSelect();
+  renderScanSide();
+  renderSettings();
+  renderHelpSched();
+  $('#camBox').classList.toggle('mirror', S.config.mirror);
+  $('#setup').hidden = S.students.length > 0;
+  if (tabRenderers[currentTab]) tabRenderers[currentTab]();
+}
+
+// 명단 파일(또는 백업 파일) 고르기 → 불러오기
+async function loadRosterFile(file, confirmFirst) {
+  const text = await file.text();
+  if (confirmFirst) {
+    let d = null;
+    try { d = JSON.parse(text); } catch (e) { /* 아래 importRoster가 알려 줌 */ }
+    const n = d && Array.isArray(d.students) ? d.students.length : d && d.state && Array.isArray(d.state.students) ? d.state.students.length : '?';
+    const body = d && d.app === 'qr-attendance'
+      ? `<b>${esc(file.name)}</b>은 <b>백업 파일</b>이에요(학생 ${n}명).<br>이 기기의 출석 기록이 백업 내용으로 <b>바뀝니다</b>.`
+      : `<b>${esc(file.name)}</b> · 학생 ${n}명<br>명단과 회차만 바뀌고 <b>출석 기록은 그대로</b> 남아요.`;
+    if (!await ask('명단 파일을 불러올까요?', body, '불러오기')) return null;
+  }
+  const r = importRoster(text);
+  svgCache.clear();
+  pickDefaultSession();
+  lastPhaseKey = '';
+  refreshAll();
+  toast(r.kind === 'backup' ? `백업을 불러왔어요 (학생 ${r.n}명)` : `명단 ${r.n}명을 불러왔어요`);
+  return r;
+}
+
+function init() {
+  loadState();
+  saveListeners.push(renderSaveBadge);
+  $$('#tabs button').forEach(b => { b.onclick = () => showTab(b.dataset.tab); });
+  $('#fsBtn').onclick = toggleFullscreen;
+  $('#verText').textContent = APP_VERSION + (WEB_BUILD ? ' · 태블릿용' : '');
+  $('#webUrl').textContent = WEB_URL;
+  $('#setupPick').onclick = () => $('#setupFile').click();
+  $('#setupFile').onchange = async e => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    $('#setupMsg').textContent = '';
+    try { await loadRosterFile(f, false); } catch (err) { $('#setupMsg').textContent = '불러오지 못했어요: ' + err.message; }
+  };
+  initScan();
+  initSheet();
+  initCards();
+  initSettings();
+  refreshAll();
+  tick();
+  setInterval(tick, 1000);
+  if (!storageOK) toast('이 브라우저에서는 자동 저장이 되지 않아요. 수업이 끝나면 엑셀로 꼭 저장하세요.', 'warn');
+  // 다른 탭(같은 주소를 두 번 연 경우)에서 바뀐 기록을 따라갑니다
+  window.addEventListener('storage', e => {
+    if (e.key !== STORE_KEY || !e.newValue) return;
+    try { S = normalize(JSON.parse(e.newValue)); refreshAll(); } catch (err) { /* 무시 */ }
+  });
+  if (WEB_BUILD) {
+    // 와이파이가 끊겨도 열리도록 프로그램을 태블릿에 보관, 기록이 저절로 지워지지 않게 요청
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  }
+}
+
+// 자동 시험용 손잡이 (화면에는 영향 없음)
+window.__qrAttendance = {
+  setNow: iso => { clockOffset = iso ? new Date(iso).getTime() - Date.now() : 0; lastPhaseKey = ''; tick(); refreshAll(); },
+  state: () => JSON.parse(JSON.stringify(S)),
+  cardPages: layout => cardPagesHtml(layout, studentsSorted()),
+  scanText: text => onScanText(text)
+};
+
+init();
+
+})();</script>
+</body>
+</html>
