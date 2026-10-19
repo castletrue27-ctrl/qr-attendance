@@ -1,6 +1,6 @@
 // 태블릿에 프로그램을 보관해 두는 작은 일꾼: 인터넷이 되면 새 버전을 받고, 안 되면 보관본으로 엽니다.
 // (학생 이름·출석 기록은 여기 없습니다 — 기록은 브라우저 저장소에만 있음)
-const CACHE = 'qr-attendance-1.2-1ss84qu';
+const CACHE = 'qr-attendance-1.3-1iji1a9';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', e => {

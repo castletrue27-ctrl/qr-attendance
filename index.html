@@ -475,6 +475,42 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
   .tabs button { padding: 10px 14px; }
   .btn.sm { padding: 8px 12px; }
 }
+
+/* ── 학교 제출용 출석부 양식 (디지털 STEAM 과학실험 B반 출석부와 같은 모양, mm 단위) ── */
+.form-sub { color: var(--text-dim); font-size: 13.5px; margin: 0 24px 14px; }
+.form-sub b { color: var(--text); }
+#sheetFormView .tip { margin-bottom: 12px; }
+.form-preview { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 0 24px 40px; overflow-x: auto; }
+.form-preview .steam-page { box-shadow: 0 10px 34px rgba(0, 0, 0, .5); flex: none; }
+@media (max-width: 860px) { .form-preview .steam-page { zoom: .86; } }
+.form-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0 12px; }
+@media (max-width: 860px) { .form-grid { grid-template-columns: 1fr 1fr; } }
+
+.steam-page { width: 210mm; height: 297mm; position: relative; overflow: hidden; background: #fff; color: #000; font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif; letter-spacing: 0; page-break-after: always; break-after: page; }
+.steam-page:last-child { page-break-after: auto; break-after: auto; }
+.sf-title { position: absolute; left: 45.2mm; top: 10.6mm; width: 119.6mm; height: 17.3mm; border: .28mm solid #8a8a8a; border-radius: .9mm; box-shadow: .5mm .5mm 0 #cdcdcd; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.3; }
+.sf-title .t1 { font-size: 14pt; }
+.sf-title .t2 { font-size: 16pt; }
+.sf-teacher { position: absolute; right: 10mm; top: 29.8mm; font-size: 12pt; font-weight: 700; }
+.sf-table { position: absolute; left: 10.94mm; top: 38.85mm; width: 188.6mm; border-collapse: collapse; table-layout: fixed; font-size: 10pt; }
+.steam-page.cont .sf-table { top: 10.9mm; }
+.sf-table col.c-no { width: 7.4mm; } .sf-table col.c-id { width: 16.4mm; } .sf-table col.c-name { width: 16.6mm; } .sf-table col.c-lab { width: 13.6mm; } .sf-table col.c-ses { width: 13.46mm; }
+.sf-table th, .sf-table td { border: .18mm solid #000; text-align: center; vertical-align: middle; padding: 0; white-space: nowrap; overflow: hidden; }
+.sf-table tr > :first-child { border-left: 0; }
+.sf-table tr > :last-child { border-right: 0; }
+.sf-table thead th { background: #dfe6f7; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.sf-table thead tr:first-child th { height: 10.2mm; border-top: .55mm solid #000; }
+.sf-table thead tr:last-child th { height: 9.88mm; }
+.sf-table thead tr:last-child th, .sf-table thead th[rowspan] { border-bottom: .7mm double #000; }
+.sf-table th.date { font-weight: 400; font-size: 9.4pt; }
+.sf-table th.lab.date { font-weight: 700; font-size: 8.8pt; }
+.sf-table .no { border-right: .38mm solid #000; }
+.sf-table td { height: 9.49mm; }
+.sf-table td.mark { font-size: 13pt; line-height: 1; }
+.sf-table tbody tr:last-child td { border-bottom: .55mm solid #000; }
+.sf-foot { position: absolute; left: 11.5mm; right: 13mm; top: 258mm; display: flex; justify-content: space-between; align-items: baseline; font-size: 10pt; font-weight: 700; }
+.steam-page.cont .sf-foot { top: 229.8mm; }
+.sf-legend { font-size: 8pt; font-weight: 400; color: #444; }
 </style>
 <style id="pageStyle">@page { size: A4 portrait; margin: 0; }</style>
 </head>
@@ -560,13 +596,21 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
         <p class="sub" id="sheetSub"></p>
       </div>
       <div class="actions">
+        <div class="seg" id="sheetView"><button data-view="table" class="on">현황표</button><button data-view="form">학교 출석부 양식</button></div>
         <button class="btn primary" id="xlsxBtn">⬇ 엑셀 파일로 저장</button>
-        <button class="btn" id="printSheetBtn">🖨 인쇄</button>
+        <button class="btn" id="printSheetBtn">🖨 인쇄 · PDF</button>
       </div>
     </div>
+    <div id="sheetFormView" hidden>
+      <div class="tip" id="formHint" hidden>학교 이름이나 담당교사가 비어 있어요. <b>설정 → 학교 출석부 양식</b>에 입력하거나, 컴퓨터에서 새로 받은 <b>명단 파일</b>을 불러오세요.</div>
+      <p class="form-sub">QR 출석 기록이 칸에 <b>저절로</b> 채워집니다 (○ 출석 · △ 지각 · ◁ 조퇴 · × 결석 · 공 공결, 아직 안 한 차시는 빈칸). <b>인쇄 · PDF</b>를 누르고 프린터 대신 <b>PDF로 저장</b>을 고르면 파일로 받을 수 있어요.</p>
+      <div class="form-preview" id="formPreview"></div>
+    </div>
+    <div id="sheetTableView">
     <div class="legend" id="legend"></div>
     <div class="sheet-wrap"><table class="sheet" id="sheet"></table></div>
     <p class="foot-note">칸을 누르면 출석·지각·조퇴·결석·공결을 바꿀 수 있어요. 흐린 <b>결석</b>은 체크 기록 없이 끝난 회차입니다. 참여율 = (출석+지각+조퇴) ÷ (진행된 회차 − 공결)</p>
+    </div>
   </section>
 
   <!-- ───────── QR 카드 ───────── -->
@@ -634,6 +678,17 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
         <p class="hint">출석부·엑셀·카드 위쪽에 들어갑니다.</p>
       </div>
       <div class="panel wide">
+        <h2>학교 출석부 양식</h2>
+        <p class="hint">출석부 탭 → <b>학교 출석부 양식</b>(디지털 STEAM 과학실험 B반 출석부와 같은 모양)의 제목과 담당교사 칸에 들어갑니다. 학번은 학년·반·번호로 만들어져요(예: 2학년 5반 1번 → 20501).</p>
+        <div class="form-grid">
+          <label class="field"><span>학교</span><input id="fmSchool" maxlength="40" placeholder="예: ○○중학교"></label>
+          <label class="field"><span>학년도</span><input id="fmYear" maxlength="40"></label>
+          <label class="field"><span>과정 이름</span><input id="fmCourse" maxlength="40"></label>
+          <label class="field"><span>반</span><input id="fmSection" maxlength="40"></label>
+          <label class="field"><span>담당교사</span><input id="fmTeacher" maxlength="40" placeholder="이름"></label>
+        </div>
+      </div>
+      <div class="panel wide">
         <h2>학생 명단 <small id="stuCount"></small></h2>
         <p class="hint">이름·반·번호를 고쳐도 <b>카드 코드는 그대로</b>라서 이미 나눠 준 카드를 계속 쓸 수 있어요. 새로 추가한 학생은 QR 카드 탭에서 그 학생 카드만 인쇄하세요.</p>
         <div class="tbl-wrap"><table class="edit" id="stuTable"></table></div>
@@ -696,7 +751,7 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
         <div class="step"><b>4</b><div><h3>카드를 안 가져온 학생</h3>
           <p>명단에서 이름을 누르면 <b>출석·지각·조퇴·결석·공결</b>을 직접 고를 수 있어요. 잘못 찍힌 기록도 같은 방법으로 고칩니다.</p></div></div>
         <div class="step"><b>5</b><div><h3>수업 끝 — 마감과 저장</h3>
-          <p><b>오늘 출석 마감</b>을 누르면 그날 두 회차에서 체크하지 않은 학생이 결석으로 표시됩니다(누르지 않아도 회차 끝 시각이 지나면 자동으로 결석 표시). 이어서 <b>엑셀 저장</b>을 누르면 태블릿의 <b>다운로드</b> 폴더(내 파일 → 다운로드)에 출석부가 저장돼요. 구글 드라이브에 올려 두면 컴퓨터에서도 볼 수 있습니다. 전체 현황은 <b>출석부</b> 탭에서 보고 인쇄할 수 있습니다.</p></div></div>
+          <p><b>오늘 출석 마감</b>을 누르면 그날 두 회차에서 체크하지 않은 학생이 결석으로 표시됩니다(누르지 않아도 회차 끝 시각이 지나면 자동으로 결석 표시). 이어서 <b>엑셀 저장</b>을 누르면 태블릿의 <b>다운로드</b> 폴더(내 파일 → 다운로드)에 출석부가 저장돼요. 구글 드라이브에 올려 두면 컴퓨터에서도 볼 수 있습니다. 전체 현황은 <b>출석부</b> 탭에서 볼 수 있고, <b>학교 출석부 양식</b>을 누르면 학교에 내는 출석부(디지털 STEAM 과학실험 B반 출석부와 같은 모양)에 ○·△·× 표시가 저절로 채워진 화면이 나옵니다. <b>인쇄 · PDF</b>로 바로 뽑거나 PDF로 저장하세요.</p></div></div>
       </div>
 
       <h2>정해 둔 일정</h2>
@@ -754,7 +809,7 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
 
 /* ===== 00-util.js ===== */
 /* 공용 도구 */
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 // 태블릿용 웹 버전(https 주소)으로 만들 때 true — 명단을 빼고, 첫 화면에서 명단 파일을 불러옵니다
 const WEB_BUILD = true;
 const WEB_URL = 'https://castletrue27-ctrl.github.io/qr-attendance/';
@@ -1551,7 +1606,13 @@ const STORE_KEY = 'qr-attendance:sci2-2026-2';
 const QR_PREFIX = 'AS26';                       // 카드 QR 앞머리 (After School 2026)
 const TOKEN_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';   // 헷갈리는 0·1·I·O 뺌
 
+// 학교 제출용 출석부(디지털 STEAM 과학실험 B반 출석부 양식)에 들어갈 글자
+// 학교 이름·담당교사는 태블릿용 웹 버전을 만들 때 빼고(build.mjs), 명단 파일로 태블릿에 전달합니다
+const FORM_DEFAULT = {};
+const FORM_BLANK = { school: '', year: '2026학년도', course: '디지털 STEAM 과학실험', section: 'B반', teacher: '' };
+
 const DEFAULT_CONFIG = {
+  form: Object.assign({}, FORM_BLANK, FORM_DEFAULT),
   title: '2학년 과학 방과후학교',
   term: '2026학년도 2학기',
   openBefore: 30,      // 그날 첫 회차 시작 몇 분 전부터 출석 체크를 받을지
@@ -1614,6 +1675,7 @@ function freshState() {
   };
 }
 
+const cleanForm = fm => Object.fromEntries(Object.keys(FORM_BLANK).map(k => [k, String(fm[k] == null ? '' : fm[k]).slice(0, 40)]));
 const DATE_RE = /^\d{4}-\d\d-\d\d$/, ID_RE = /^\d{4}-\d\d-\d\d-\d{1,2}$/, TIME_RE = /^\d\d:\d\d$/;
 const cleanRecs = recs => {
   const out = {};
@@ -1626,6 +1688,7 @@ function normalize(d) {
   if (!d || typeof d !== 'object' || !Array.isArray(d.students) || !Array.isArray(d.sessions)) throw new Error('출석 자료 형식이 아닙니다');
   const out = freshState();
   out.config = Object.assign({}, DEFAULT_CONFIG, d.config || {});
+  out.config.form = cleanForm(Object.assign({}, DEFAULT_CONFIG.form, (d.config && d.config.form) || {}));
   out.students = d.students.filter(s => s && /^[A-Z0-9]{4}$/.test(s.t) && s.name).map(s => ({
     t: s.t, g: +s.g || GRADE, c: +s.c || 0, n: +s.n || 0, name: String(s.name).slice(0, 20), added: DATE_RE.test(s.added || '') ? s.added : undefined
   }));
@@ -1674,6 +1737,7 @@ const studentsSorted = () => S.students.slice().sort((a, b) => a.g - b.g || a.c 
 const studentByToken = t => S.students.find(s => s.t === t);
 const stuLabel = s => `${s.g}-${s.c}`;
 const cardText = s => `${QR_PREFIX}-${s.t}`;
+const studentNo = s => `${s.g}${pad2(s.c)}${pad2(s.n)}`;
 
 function newToken(seed) {
   // 같은 학생을 다른 컴퓨터에서 추가해도 같은 코드가 나오도록 이름·반·번호로 정합니다
@@ -1827,7 +1891,7 @@ function restoreFrom(text) {
 
 // ── 태블릿용 명단 파일: 이름·반·번호·카드 코드와 회차만 (출석 기록은 넣지 않음) ──
 function rosterData() {
-  return { app: 'qr-attendance-roster', key: STORE_KEY, version: APP_VERSION, title: S.config.title, term: S.config.term,
+  return { app: 'qr-attendance-roster', key: STORE_KEY, version: APP_VERSION, title: S.config.title, term: S.config.term, form: S.config.form,
     students: studentsSorted().map(({ t, g, c, n, name }) => ({ t, g, c, n, name })), sessions: sessionsSorted() };
 }
 const rosterBlob = () => new Blob([JSON.stringify(rosterData(), null, 1)], { type: 'application/json' });
@@ -1839,7 +1903,7 @@ function importRoster(text) {
   if (d && d.app === 'qr-attendance') { S = normalize(d.state); save(); return { kind: 'backup', n: S.students.length }; }
   if (!d || d.app !== 'qr-attendance-roster' || !Array.isArray(d.students)) throw new Error('출석 명단 파일이 아니에요');
   const next = normalize({
-    config: Object.assign({}, S.config, { title: d.title || S.config.title, term: d.term || S.config.term }),
+    config: Object.assign({}, S.config, { title: d.title || S.config.title, term: d.term || S.config.term, form: Object.assign({}, S.config.form, d.form || {}) }),
     students: d.students, sessions: Array.isArray(d.sessions) && d.sessions.length ? d.sessions : S.sessions,
     records: S.records, closed: S.closed, updated: S.updated
   });
@@ -1885,26 +1949,33 @@ const Xlsx = (() => {
   }
 
   // 셀 모양 번호 (styles.xml의 cellXfs 순서)
-  const ST = { normal: 0, title: 1, head: 2, center: 3, left: 4, P: 5, L: 6, E: 7, A: 8, X: 9, num: 10, pct: 11, note: 12, auto: 13, foot: 14 };
+  const ST = { normal: 0, title: 1, head: 2, center: 3, left: 4, P: 5, L: 6, E: 7, A: 8, X: 9, num: 10, pct: 11, note: 12, auto: 13, foot: 14,
+    fT1: 15, fT2: 16, fRight: 17, fHead: 18, fCell: 19, fMark: 20, fFoot: 21, fLegend: 22 };   // f…: 학교 출석부 양식
   const fill = rgb => `<fill><patternFill patternType="solid"><fgColor rgb="FF${rgb}"/><bgColor indexed="64"/></patternFill></fill>`;
   const xf = (font, fillId, border, extra = '', numFmt = 0) =>
     `<xf numFmtId="${numFmt}" fontId="${font}" fillId="${fillId}" borderId="${border}" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"${numFmt ? ' applyNumberFormat="1"' : ''}>${extra}</xf>`;
   const mid = '<alignment horizontal="center" vertical="center"/>';
   const STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-    '<fonts count="5">' +
+    '<fonts count="10">' +
     '<font><sz val="11"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
     '<font><b/><sz val="15"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
     '<font><b/><sz val="11"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
     '<font><sz val="10"/><color rgb="FF6B7280"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
     '<font><b/><sz val="11"/><color rgb="FFB4233C"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
+    '<font><sz val="14"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
+    '<font><sz val="16"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
+    '<font><b/><sz val="12"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
+    '<font><sz val="13"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
+    '<font><b/><sz val="10"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>' +
     '</fonts>' +
-    '<fills count="9"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
-    fill('DCE3F4') + fill('D5F2E1') + fill('FFEDB8') + fill('FFDDC2') + fill('FBD3DA') + fill('E4DAFB') + fill('F2F4F8') + '</fills>' +
-    '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>' +
-    '<border><left style="thin"><color rgb="FFB9C0D0"/></left><right style="thin"><color rgb="FFB9C0D0"/></right><top style="thin"><color rgb="FFB9C0D0"/></top><bottom style="thin"><color rgb="FFB9C0D0"/></bottom><diagonal/></border></borders>' +
+    '<fills count="10"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+    fill('DCE3F4') + fill('D5F2E1') + fill('FFEDB8') + fill('FFDDC2') + fill('FBD3DA') + fill('E4DAFB') + fill('F2F4F8') + fill('DFE6F7') + '</fills>' +
+    '<borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border>' +
+    '<border><left style="thin"><color rgb="FFB9C0D0"/></left><right style="thin"><color rgb="FFB9C0D0"/></right><top style="thin"><color rgb="FFB9C0D0"/></top><bottom style="thin"><color rgb="FFB9C0D0"/></bottom><diagonal/></border>' +
+    '<border><left style="thin"><color rgb="FF000000"/></left><right style="thin"><color rgb="FF000000"/></right><top style="thin"><color rgb="FF000000"/></top><bottom style="thin"><color rgb="FF000000"/></bottom><diagonal/></border></borders>' +
     '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-    '<cellXfs count="15">' +
+    '<cellXfs count="23">' +
     '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
     xf(1, 0, 0, '<alignment vertical="center"/>') +
     xf(2, 2, 1, '<alignment horizontal="center" vertical="center" wrapText="1"/>') +
@@ -1916,6 +1987,9 @@ const Xlsx = (() => {
     xf(3, 0, 0, '<alignment vertical="center"/>') +
     xf(3, 6, 1, mid) +
     xf(2, 8, 1, mid) +
+    xf(5, 0, 0, mid) + xf(6, 0, 0, mid) + xf(7, 0, 0, '<alignment horizontal="right" vertical="center"/>') +
+    xf(9, 9, 2, '<alignment horizontal="center" vertical="center" wrapText="1"/>') + xf(0, 0, 2, mid) + xf(8, 0, 2, mid) +
+    xf(2, 0, 0, '<alignment horizontal="right" vertical="center"/>') + xf(3, 0, 0, '<alignment horizontal="left" vertical="center"/>') +
     '</cellXfs><cellStyles count="1"><cellStyle name="표준" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 
   const xmlEsc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
@@ -1949,7 +2023,7 @@ const Xlsx = (() => {
       `<sheetData>${rows}</sheetData>` +
       (sh.merges && sh.merges.length ? `<mergeCells count="${sh.merges.length}">${sh.merges.map(m => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>` : '') +
       '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>' +
-      `<pageSetup paperSize="9" orientation="${sh.landscape ? 'landscape' : 'portrait'}" fitToWidth="1" fitToHeight="0"/>` +
+      `<pageSetup paperSize="9" orientation="${sh.landscape ? 'landscape' : 'portrait'}" fitToWidth="1" fitToHeight="${sh.onePage ? 1 : 0}"/>` +
       '</worksheet>';
   }
 
@@ -2044,7 +2118,38 @@ function attendanceWorkbook() {
   }
   const sheet3 = { name: '수업 일정', freeze: { rows: 2 }, cols: [6, 12, 13, 26, 7, 7, 7, 7, 7, 8], heights: { 0: 26 }, rows: dayRows };
 
-  return Xlsx.book([sheet1, sheet2, sheet3]);
+  return Xlsx.book([sheet1, ...formSheets(), sheet2, sheet3]);
+}
+
+// 학교 출석부 양식(디지털 STEAM 과학실험 B반 출석부 모양) — 10차시씩 한 시트, A4 세로 한 장
+function formSheets() {
+  const fm = S.config.form, sessions = sessionsSorted(), students = studentsSorted(), rows = Math.max(FORM_MIN_ROWS, students.length), out = [];
+  for (let i = 0; i < Math.max(1, sessions.length); i += FORM_PER_PAGE) {
+    const chunk = sessions.slice(i, i + FORM_PER_PAGE), cols = Array.from({ length: FORM_PER_PAGE }, (_, k) => chunk[k] || null);
+    const R = [
+      [{ v: `${fm.school} ${fm.year}`.trim(), s: 'fT1' }],
+      [{ v: `${fm.course} ${fm.section} 출석부`.trim(), s: 'fT2' }],
+      [{ v: `담당교사: ${fm.teacher}`, s: 'fRight' }],
+      [{ v: '순', s: 'fHead' }, { v: '학번', s: 'fHead' }, { v: '성명', s: 'fHead' }, { v: '차시', s: 'fHead' }, ...cols.map(x => ({ v: x ? sessionNo(x.id) : '', s: 'fHead' }))],
+      [{ v: '', s: 'fHead' }, { v: '', s: 'fHead' }, { v: '', s: 'fHead' }, { v: '날짜', s: 'fHead' }, ...cols.map(x => ({ v: x ? formDate(x.date) : '', s: 'fHead' }))]
+    ];
+    const heights = { 0: 24, 1: 27, 2: 21, 3: 25, 4: 24 };
+    for (let r = 0; r < rows; r++) {
+      const st = students[r];
+      R.push([{ v: r + 1, s: 'fCell' }, { v: st ? studentNo(st) : '', s: 'fCell' }, { v: st ? st.name : '', s: 'fCell' }, { v: '', s: 'fCell' },
+        ...cols.map(x => ({ v: st && x ? formMark(x.id, st.t) : '', s: 'fMark' }))]);
+      heights[5 + r] = 25;
+    }
+    R.push([]);
+    R.push([{ v: FORM_LEGEND, s: 'fLegend' }, null, null, null, null, null, null, { v: `담당교사: ${fm.teacher} (인)`, s: 'fFoot' }]);
+    const foot = R.length, last = Xlsx.colName(3 + FORM_PER_PAGE);
+    out.push({
+      name: `${fm.section ? fm.section + ' ' : ''}출석부 ${i + 1}~${i + Math.max(chunk.length, 1)}차시`, onePage: true,
+      cols: [4.5, 8.5, 8.5, 6.5, ...cols.map(() => 6.4)], heights,
+      merges: [`A1:${last}1`, `A2:${last}2`, `A3:${last}3`, 'A4:A5', 'B4:B5', 'C4:C5', `A${foot}:F${foot}`, `H${foot}:${last}${foot}`], rows: R
+    });
+  }
+  return out;
 }
 
 
@@ -2692,9 +2797,70 @@ function printSheet() {
 
 function initSheet() {
   $('#xlsxBtn').onclick = saveXlsx;
-  $('#printSheetBtn').onclick = printSheet;
-  tabRenderers.sheet = renderSheet;
+  $('#printSheetBtn').onclick = () => (sheetView === 'form' ? printSteamForm() : printSheet());
+  $$('#sheetView button').forEach(b => { b.onclick = () => setSheetView(b.dataset.view); });
+  tabRenderers.sheet = () => (sheetView === 'form' ? renderFormPreview() : renderSheet());
 }
+
+
+/* ===== 55-ui-form.js ===== */
+/* 학교 제출용 출석부: "디지털 STEAM 과학실험 B반 출석부"(한글 문서) 양식을 그대로 그리고 출석 기록으로 칸을 채웁니다 */
+// 칸에 들어갈 표시
+const FORM_MARK = { P: '○', L: '△', E: '◁', A: '×', X: '공' };
+const FORM_LEGEND = '○ 출석 · △ 지각 · ◁ 조퇴 · × 결석 · 공 공결';
+const FORM_PER_PAGE = 10;    // 한 쪽에 10차시
+const FORM_MIN_ROWS = 20;    // 원본처럼 20줄 (학생이 적으면 빈 줄)
+
+function formMark(sessId, t) {
+  const x = statusOf(sessId, t);
+  if (x.na || !x.s) return '';
+  return FORM_MARK[x.s] || '';
+}
+const formDate = date => { const d = parseDate(date); return `${d.getMonth() + 1}/${d.getDate()}`; };
+
+// 양식 쪽들(HTML) — 화면 미리보기와 인쇄에 함께 씀
+function steamFormHtml() {
+  const fm = S.config.form, sessions = sessionsSorted(), students = studentsSorted();
+  const rows = Math.max(FORM_MIN_ROWS, students.length), pages = [];
+  for (let i = 0; i < Math.max(1, sessions.length); i += FORM_PER_PAGE) pages.push(sessions.slice(i, i + FORM_PER_PAGE));
+  const teacher = fm.teacher ? esc(fm.teacher) : '';
+  return pages.map((chunk, pi) => {
+    const cols = Array.from({ length: FORM_PER_PAGE }, (_, k) => chunk[k] || null);
+    let h = `<div class="steam-page${pi ? ' cont' : ''}">`;
+    if (!pi) {
+      h += `<div class="sf-title"><div class="t1">${esc(fm.school)} ${esc(fm.year)}</div><div class="t2">${esc(fm.course)} ${esc(fm.section)} 출석부</div></div>` +
+        `<div class="sf-teacher">담당교사: ${teacher}</div>`;
+    }
+    h += '<table class="sf-table"><colgroup><col class="c-no"><col class="c-id"><col class="c-name"><col class="c-lab">' + cols.map(() => '<col class="c-ses">').join('') + '</colgroup>';
+    h += '<thead><tr><th rowspan="2" class="no">순</th><th rowspan="2">학번</th><th rowspan="2">성명</th><th class="lab">차시</th>' +
+      cols.map(s => `<th class="num">${s ? sessionNo(s.id) : ''}</th>`).join('') + '</tr>' +
+      '<tr><th class="lab date">날짜</th>' + cols.map(s => `<th class="date">${s ? formDate(s.date) : ''}</th>`).join('') + '</tr></thead><tbody>';
+    for (let r = 0; r < rows; r++) {
+      const st = students[r];
+      h += `<tr><td class="no">${r + 1}</td><td>${st ? studentNo(st) : ''}</td><td>${st ? esc(st.name) : ''}</td><td class="lab"></td>` +
+        cols.map(s => `<td class="mark">${st && s ? formMark(s.id, st.t) : ''}</td>`).join('') + '</tr>';
+    }
+    h += `</tbody></table><div class="sf-foot"><span class="sf-legend">${FORM_LEGEND}</span><span>담당교사: ${teacher} (인)</span></div></div>`;
+    return h;
+  }).join('');
+}
+
+// 출석부 탭: 현황표 ↔ 학교 출석부 양식
+let sheetView = 'table';
+function renderFormPreview() {
+  const box = $('#formPreview');
+  box.innerHTML = steamFormHtml();
+  const missing = ['school', 'teacher'].filter(k => !S.config.form[k]);
+  $('#formHint').hidden = !missing.length;
+}
+function setSheetView(v) {
+  sheetView = v;
+  $$('#sheetView button').forEach(b => b.classList.toggle('on', b.dataset.view === v));
+  $('#sheetTableView').hidden = v !== 'table';
+  $('#sheetFormView').hidden = v !== 'form';
+  if (v === 'form') renderFormPreview(); else renderSheet();
+}
+function printSteamForm() { printPages(steamFormHtml(), false); }
 
 
 /* ===== 56-ui-cards.js ===== */
@@ -2790,6 +2956,7 @@ function initCards() {
 
 /* ===== 58-ui-settings.js ===== */
 /* 설정: 출석 규칙 · 카메라 · 명단 · 수업 날짜 · 백업 */
+const FORM_FIELDS = [['#fmSchool', 'school'], ['#fmYear', 'year'], ['#fmCourse', 'course'], ['#fmSection', 'section'], ['#fmTeacher', 'teacher']];
 function renderRuleExample() {
   const ss = sessionsSorted(), sess = ss.find(s => s.start === '15:30') || ss[0];
   if (!sess) { $('#ruleExample').textContent = ''; return; }
@@ -2816,6 +2983,7 @@ function renderSettings() {
   $('#tglVoice').checked = S.config.voice;
   if (document.activeElement !== $('#setTitle')) $('#setTitle').value = S.config.title;
   if (document.activeElement !== $('#setTerm')) $('#setTerm').value = S.config.term;
+  for (const [id, k] of FORM_FIELDS) if (document.activeElement !== $(id)) $(id).value = S.config.form[k] || '';
   renderRuleExample();
   renderCameraSelect();
   renderStudentTable();
@@ -2932,6 +3100,7 @@ function initSettings() {
   const text = (id, key) => { $(id).oninput = e => { S.config[key] = e.target.value.trim() || DEFAULT_CONFIG[key]; save(); renderTitle(); }; };
   text('#setTitle', 'title');
   text('#setTerm', 'term');
+  for (const [id, k] of FORM_FIELDS) $(id).oninput = e => { S.config.form[k] = e.target.value.trim(); save(); };
 
   $('#stuAdd').onsubmit = e => {
     e.preventDefault();
