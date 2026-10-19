@@ -516,6 +516,15 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
 .sf-foot { margin: 9mm 3mm 0 1.5mm; display: flex; justify-content: space-between; align-items: baseline; font-size: 10pt; line-height: 1.2; font-weight: 700; }
 .sf-blank { display: inline-block; width: 22mm; }
 .sf-legend { font-size: 8pt; font-weight: 400; color: #444; }
+
+/* ── 퇴실 체크 ── */
+.result.out { border-color: var(--cyan); box-shadow: 0 0 0 6px rgba(62, 231, 255, .15), 0 30px 80px rgba(0, 0, 0, .6); }
+.result.out .r-msg { color: var(--cyan); }
+.phase.out { color: var(--cyan); }
+.counts .out b { color: var(--cyan); }
+.recent .chip.o { border-color: rgba(62, 231, 255, .5); }
+.stu .st { overflow: hidden; text-overflow: ellipsis; }
+.sheet .cell.e.auto { background: rgba(255, 159, 92, .06); color: rgba(255, 159, 92, .75); font-weight: 600; }
 </style>
 <style id="pageStyle">@page { size: A4 portrait; margin: 0; }</style>
 </head>
@@ -609,7 +618,7 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
     <div id="sheetFormView" hidden>
       <div class="tip" id="formHint" hidden>학교 이름이나 담당교사가 비어 있어요. 아래 칸에 입력하거나, 설정 → <b>명단 파일 불러오기</b>로 구글 드라이브의 새 명단 파일을 불러오세요(출석 기록은 그대로).</div>
       <div class="form-fields"><label>학교 <input id="ffSchool" maxlength="40" placeholder="예: ○○중학교"></label><label>담당교사 <input id="ffTeacher" maxlength="40" placeholder="이름"></label><span>양식의 제목과 도장(인) 칸에 들어가요</span></div>
-      <p class="form-sub">QR 출석 기록이 칸에 <b>저절로</b> 채워집니다 (○ 출석 · △ 지각 · ◁ 조퇴 · × 결석 · 공 공결, 아직 안 한 차시는 빈칸). <b>인쇄 · PDF</b>를 누르고 프린터 대신 <b>PDF로 저장</b>을 고르면 파일로 받을 수 있어요.</p>
+      <p class="form-sub">QR 출석 기록이 칸에 <b>저절로</b> 채워집니다 — 학교 출석부에는 <b>○ 출석</b>, <b>× 결석</b>만 적어요(지각·공결은 ○, 조퇴·퇴실 안 찍음은 ×, 아직 안 한 차시는 빈칸). <b>인쇄 · PDF</b>를 누르고 프린터 대신 <b>PDF로 저장</b>을 고르면 파일로 받을 수 있어요.</p>
       <div class="form-preview" id="formPreview"></div>
     </div>
     <div id="sheetTableView">
@@ -661,6 +670,11 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
           <select id="setScanMode">
             <option value="day">그날 남은 회차까지 함께 기록 (하루 한 번만 찍기)</option>
             <option value="each">지금 회차만 기록 (회차마다 다시 찍기)</option>
+          </select></label>
+        <label class="field"><span>퇴실 체크</span>
+          <select id="setCheckout">
+            <option value="on">쓰기 — 끝나기 10분 전부터 끝난 뒤 30분까지 한 번 더 찍기</option>
+            <option value="off">쓰지 않기</option>
           </select></label>
         <label class="field"><span>지각 기준</span>
           <select id="setGrace">
@@ -753,11 +767,11 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
         <div class="step"><b>2</b><div><h3>수업 날 — 태블릿 세워 두고 시작</h3>
           <p>홈 화면의 <b>QR 출석</b> 아이콘을 누르세요. 오늘이 수업일이면 지금 회차가 자동으로 골라져 있고, 1부가 끝나면 2부로 저절로 넘어가요. 태블릿을 교탁이나 교실 입구에 세워 <b>앞 카메라가 학생 쪽</b>을 보게 두고 <b>▶ 출석 체크 시작</b>. 학생이 다 들어오면 다른 앱으로 넘어가 수업에 써도 기록은 그대로 남아요.</p></div></div>
         <div class="step"><b>3</b><div><h3>학생은 카드를 카메라에 보여 주기만</h3>
-          <p>카메라에서 20~40cm 떨어져 카드를 정면으로 보여 주면 "딩동" 소리와 함께 이름이 크게 뜹니다. <b>회차 시작 시각까지는 출석</b>, 그 뒤는 <b>지각</b>으로 기록돼요. 하루 2회차라도 <b>처음에 한 번만 찍으면</b> 그날 두 회차가 함께 기록됩니다(설정에서 '회차마다 다시 찍기'로 바꿀 수 있어요). 2부 중간에 간 학생은 명단을 눌러 <b>조퇴</b>로 바꾸세요. 같은 카드를 또 보여 주면 "이미 출석"이라고만 나오고 기록은 바뀌지 않습니다. 두 명이 동시에 보여 줘도 둘 다 읽어요.</p></div></div>
+          <p>카메라에서 20~40cm 떨어져 카드를 정면으로 보여 주면 "딩동" 소리와 함께 이름이 크게 뜹니다. <b>회차 시작 시각까지는 출석</b>, 그 뒤는 <b>지각</b>으로 기록돼요. 하루 2회차라도 <b>처음에 한 번만 찍으면</b> 그날 두 회차가 함께 기록됩니다(설정에서 '회차마다 다시 찍기'로 바꿀 수 있어요). <b>수업이 끝날 때 카드를 한 번 더</b> 보여 주면 퇴실 체크가 되고(끝나기 10분 전부터), 퇴실을 안 찍고 가면 그날 마지막 회차가 자동으로 <b>조퇴</b>가 됩니다. 같은 카드를 또 보여 주면 "이미 출석"이라고만 나오고 기록은 바뀌지 않습니다. 두 명이 동시에 보여 줘도 둘 다 읽어요.</p></div></div>
         <div class="step"><b>4</b><div><h3>카드를 안 가져온 학생</h3>
           <p>명단에서 이름을 누르면 <b>출석·지각·조퇴·결석·공결</b>을 직접 고를 수 있어요. 잘못 찍힌 기록도 같은 방법으로 고칩니다.</p></div></div>
         <div class="step"><b>5</b><div><h3>수업 끝 — 마감과 저장</h3>
-          <p><b>오늘 출석 마감</b>을 누르면 그날 두 회차에서 체크하지 않은 학생이 결석으로 표시됩니다(누르지 않아도 회차 끝 시각이 지나면 자동으로 결석 표시). 이어서 <b>엑셀 저장</b>을 누르면 태블릿의 <b>다운로드</b> 폴더(내 파일 → 다운로드)에 출석부가 저장돼요. 구글 드라이브에 올려 두면 컴퓨터에서도 볼 수 있습니다. 전체 현황은 <b>출석부</b> 탭에서 볼 수 있고, <b>학교 출석부 양식</b>을 누르면 학교에 내는 출석부(디지털 STEAM 과학실험 B반 출석부와 같은 모양)에 ○·△·× 표시가 저절로 채워진 화면이 나옵니다. <b>인쇄 · PDF</b>로 바로 뽑거나 PDF로 저장하세요.</p></div></div>
+          <p><b>오늘 출석 마감</b>을 누르면 그날 두 회차에서 체크하지 않은 학생이 결석으로 표시됩니다(누르지 않아도 회차 끝 시각이 지나면 자동으로 결석 표시). 이어서 <b>엑셀 저장</b>을 누르면 태블릿의 <b>다운로드</b> 폴더(내 파일 → 다운로드)에 출석부가 저장돼요. 구글 드라이브에 올려 두면 컴퓨터에서도 볼 수 있습니다. 전체 현황은 <b>출석부</b> 탭에서 볼 수 있고, <b>학교 출석부 양식</b>을 누르면 학교에 내는 출석부(디지털 STEAM 과학실험 B반 출석부와 같은 모양)에 ○(출석)·×(결석) 표시가 저절로 채워진 화면이 나옵니다. <b>인쇄 · PDF</b>로 바로 뽑거나 PDF로 저장하세요.</p></div></div>
       </div>
 
       <h2>정해 둔 일정</h2>
@@ -815,7 +829,7 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
 
 /* ===== 00-util.js ===== */
 /* 공용 도구 */
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 // 태블릿용 웹 버전(https 주소)으로 만들 때 true — 명단을 빼고, 첫 화면에서 명단 파일을 불러옵니다
 const WEB_BUILD = true;
 const WEB_URL = 'https://castletrue27-ctrl.github.io/qr-attendance/';
@@ -1624,6 +1638,9 @@ const DEFAULT_CONFIG = {
   openBefore: 30,      // 그날 첫 회차 시작 몇 분 전부터 출석 체크를 받을지
   lateGrace: 0,        // 회차 시작 후 몇 분까지 출석으로 볼지 (0 = 시작 시각까지 출석, 1분 뒤부터 지각)
   scanEach: false,     // false: 한 번 찍으면 그날 남은 회차까지 함께 기록 / true: 회차마다 다시 찍기
+  checkout: true,      // 퇴실 체크: 수업이 끝날 때 카드를 한 번 더 찍기 (안 찍으면 그날 마지막 회차 조퇴)
+  checkoutBefore: 10,  // 마지막 회차 끝나기 몇 분 전부터 퇴실 체크를 받을지
+  checkoutAfter: 30,   // 끝난 뒤 몇 분까지 받을지
   sound: true,
   voice: false,
   mirror: true,        // 카메라 화면 좌우 반전(거울처럼)
@@ -1677,6 +1694,7 @@ function freshState() {
     sessions: defaultSessions(),
     records: {},
     closed: {},
+    checkouts: {},       // 날짜 → { 카드 코드: 퇴실 시각 }
     updated: 0
   };
 }
@@ -1716,6 +1734,12 @@ function normalize(d) {
     const ids = new Set(out.sessions.map(s => s.id));
     for (const [id, recs] of Object.entries(d.records || {})) if (ids.has(id)) out.records[id] = cleanRecs(recs);
     for (const [id, v] of Object.entries(d.closed || {})) if (ids.has(id) && v) out.closed[id] = true;
+  }
+  out.checkouts = {};
+  for (const [date, outs] of Object.entries(d.checkouts || {})) {
+    if (!DATE_RE.test(date) || !outs || typeof outs !== 'object') continue;
+    out.checkouts[date] = {};
+    for (const [t, at] of Object.entries(outs)) if (/^[A-Z0-9]{4}$/.test(t) && /^\d\d:\d\d/.test(String(at))) out.checkouts[date][t] = String(at).slice(0, 8);
   }
   out.updated = +d.updated || 0;
   return out;
@@ -1764,6 +1788,7 @@ function addStudent(g, c, n, name) {
 function removeStudent(t) {
   S.students = S.students.filter(s => s.t !== t);
   for (const recs of Object.values(S.records)) delete recs[t];
+  for (const outs of Object.values(S.checkouts)) delete outs[t];
   save();
 }
 
@@ -1804,6 +1829,23 @@ function sessionPhase(sess, t = now()) {
 }
 const sessionFinished = sess => S.closed[sess.id] || ['past', 'over'].includes(sessionPhase(sess));
 
+// ── 퇴실 체크: 그날 마지막 회차가 끝나기 10분 전부터 끝난 뒤 30분까지 카드를 한 번 더 찍습니다 ──
+const lastOfDay = date => { const d = sessionsOnDate(date); return d.length ? d[d.length - 1] : null; };
+function checkoutWindow(date) {
+  const last = lastOfDay(date);
+  return last ? { last, open: toMin(last.end) - S.config.checkoutBefore, close: toMin(last.end) + S.config.checkoutAfter } : null;
+}
+const checkoutOf = (date, t) => (S.checkouts[date] || {})[t] || '';
+const checkoutCount = date => Object.keys(S.checkouts[date] || {}).length;
+// 이 회차가 그날 마지막 회차이고, QR로 들어왔는데 퇴실 체크 없이 퇴실 시간이 지났는지 (선생님이 직접 고친 기록은 그대로 둠)
+function checkoutMissed(sess, t, r) {
+  if (!S.config.checkout || !r || r.by !== 'qr' || (r.s !== 'P' && r.s !== 'L')) return false;
+  const w = checkoutWindow(sess.date);
+  if (!w || w.last.id !== sess.id || checkoutOf(sess.date, t)) return false;
+  const today = dateKey(now());
+  return !!S.closed[sess.id] || sess.date < today || (sess.date === today && nowMin() > w.close);
+}
+
 // 지금 회차: 오늘 아직 안 끝난 첫 회차(다 끝났으면 오늘 마지막 회차), 오늘 수업이 없으면 다음 회차
 function currentSession() {
   const t = now(), today = dateKey(t), m = nowMin(t), todays = sessionsOnDate(today);
@@ -1818,6 +1860,7 @@ function statusOf(id, t) {
   const sess = sessionById(id), st = studentByToken(t);
   if (st && st.added && sess && sess.date < st.added) return { s: '', na: true };
   const r = S.records[id] && S.records[id][t];
+  if (r && sess && checkoutMissed(sess, t, r)) return { s: 'E', at: r.at, by: r.by, auto: true, noOut: true, entry: r.s };
   if (r) return Object.assign({ auto: false }, r);
   if (sess && sessionFinished(sess)) return { s: 'A', auto: true };
   return { s: '' };
@@ -1842,6 +1885,17 @@ function checkIn(text, selId) {
   const t = now(), today = dateKey(t), sel = sessionById(selId), m = nowMin(t);
   if (!sel || sel.date !== today) return { kind: 'practice', st, phase: sel ? sessionPhase(sel, t) : 'none' };
   if (m < dayOpenMin(today)) return { kind: 'practice', st, phase: 'before' };
+  const w = S.config.checkout ? checkoutWindow(today) : null;
+  if (w && m >= w.open && m <= w.close) {
+    const lastRec = (S.records[w.last.id] || {})[st.t];
+    if (lastRec && ['P', 'L', 'E'].includes(lastRec.s)) {
+      const outs = S.checkouts[today] = S.checkouts[today] || {};
+      if (outs[st.t]) return { kind: 'outDup', st, at: outs[st.t] };
+      outs[st.t] = clock(t);
+      save();
+      return { kind: 'out', st, at: outs[st.t], sess: w.last };
+    }
+  }
   const left = sessionsOnDate(today).filter(s => m < toMin(s.end));
   if (!left.length) return { kind: 'ended', st };
   const targets = S.config.scanEach ? [left[0]] : left, at = clock(t);
@@ -1853,7 +1907,7 @@ function checkIn(text, selId) {
     recs[st.t] = rec;
     if (!first) first = { rec, sess: s };
   }
-  if (!first) return { kind: 'dup', st, rec: dupRec.rec, sess: dupRec.sess };
+  if (!first) return { kind: 'dup', st, rec: dupRec.rec, sess: dupRec.sess, outFrom: w && m < w.open ? fromMin(w.open) : '' };
   save();
   return { kind: first.rec.s === 'P' ? 'ok' : 'late', st, rec: first.rec, sess: first.sess };
 }
@@ -1911,7 +1965,7 @@ function importRoster(text) {
   const next = normalize({
     config: Object.assign({}, S.config, { title: d.title || S.config.title, term: d.term || S.config.term, form: Object.assign({}, S.config.form, d.form || {}) }),
     students: d.students, sessions: Array.isArray(d.sessions) && d.sessions.length ? d.sessions : S.sessions,
-    records: S.records, closed: S.closed, updated: S.updated
+    records: S.records, closed: S.closed, checkouts: S.checkouts, updated: S.updated
   });
   if (!next.students.length) throw new Error('명단에 학생이 없어요');
   S = next;
@@ -2085,7 +2139,7 @@ function attendanceWorkbook() {
         const x = statusOf(sess.id, st.t);
         if (x.na) return { v: '—', s: 'center' };
         if (!x.s) return { v: '', s: 'center' };
-        if (x.auto) return { v: '결석', s: 'auto' };
+        if (x.auto) return x.s === 'E' ? { v: '조퇴(퇴실X)', s: 'E' } : { v: '결석', s: 'auto' };
         return { v: x.s === 'L' && x.at ? `지각 ${x.at.slice(0, 5)}` : STATUS[x.s].label, s: x.s };
       }),
       { v: sum.P, s: 'num' }, { v: sum.L, s: 'num' }, { v: sum.E, s: 'num' }, { v: sum.A, s: 'num' }, { v: sum.X, s: 'num' },
@@ -2105,16 +2159,17 @@ function attendanceWorkbook() {
     heights: { 0: 26, 2: 20, 3: 32 }, merges, rows
   };
 
-  const logRows = [[{ v: '체크 기록', s: 'title' }], ['날짜', '회차', '시간', '반', '번호', '이름', '상태', '체크 시각', '방법'].map(v => ({ v, s: 'head' }))];
+  const logRows = [[{ v: '체크 기록', s: 'title' }], ['날짜', '회차', '시간', '반', '번호', '이름', '상태', '체크 시각', '방법', '퇴실 시각'].map(v => ({ v, s: 'head' }))];
   for (const sess of sessions) {
     for (const st of students) {
       const r = S.records[sess.id] && S.records[sess.id][st.t];
       if (!r) continue;
       logRows.push([{ v: fmtDate(sess.date), s: 'center' }, { v: sessionNo(sess.id), s: 'num' }, { v: `${sess.start}~${sess.end}`, s: 'center' }, { v: stuLabel(st), s: 'center' }, { v: st.n, s: 'num' }, { v: st.name, s: 'left' },
-        { v: STATUS[r.s].label, s: r.s }, { v: r.at || '', s: 'center' }, { v: r.by === 'qr' ? 'QR' : '선생님 입력', s: 'center' }]);
+        { v: STATUS[r.s].label, s: r.s }, { v: r.at || '', s: 'center' }, { v: r.by === 'qr' ? 'QR' : '선생님 입력', s: 'center' },
+        { v: lastOfDay(sess.date) && lastOfDay(sess.date).id === sess.id ? checkoutOf(sess.date, st.t) || (statusOf(sess.id, st.t).noOut ? '안 찍음' : '') : '', s: 'center' }]);
     }
   }
-  const sheet2 = { name: '체크 기록', freeze: { rows: 2 }, cols: [12, 6, 13, 6, 6, 10, 8, 10, 12], heights: { 0: 26 }, rows: logRows };
+  const sheet2 = { name: '체크 기록', freeze: { rows: 2 }, cols: [12, 6, 13, 6, 6, 10, 8, 10, 12, 10], heights: { 0: 26 }, rows: logRows };
 
   const dayRows = [[{ v: '수업 일정', s: 'title' }], ['회차', '날짜', '시간', '메모', '출석', '지각', '조퇴', '결석', '공결', '미체크'].map(v => ({ v, s: 'head' }))];
   for (const sess of sessions) {
@@ -2259,12 +2314,20 @@ function renderSessSelect() {
   sel.value = selectedId || '';
 }
 
+// 이 회차가 퇴실 체크 시간 중인지 (오늘·마지막 회차·창 안)
+function inCheckout(sess, t = now()) {
+  if (!S.config.checkout || !sess || sess.date !== dateKey(t)) return null;
+  const w = checkoutWindow(sess.date), m = nowMin(t);
+  return w && w.last.id === sess.id && m >= w.open && m <= w.close ? w : null;
+}
+
 function modeOf(sess) {
   const today = dateKey(now());
   if (!sess) return ['practice', '연습 모드 · 기록 안 됨'];
   if (sess.date > today) return ['practice', '연습 모드 · 아직 수업일이 아니에요'];
   if (sess.date < today) return ['practice', '지난 회차 · QR은 기록 안 됨'];
   if (sessionPhase(sess) === 'before') return ['practice', `연습 모드 · ${fromMin(dayOpenMin(sess.date))}부터 기록`];
+  if (inCheckout(sess)) return ['rec', `퇴실 체크 중 · ${sessionNo(sess.id)}회차`];
   return ['rec', `기록 중 · ${sessionNo(sess.id)}회차`];
 }
 
@@ -2274,6 +2337,8 @@ function phaseInfo(sess) {
   const t = now(), ph = sessionPhase(sess, t), sec = t.getHours() * 3600 + t.getMinutes() * 60 + t.getSeconds();
   const st = toMin(sess.start) * 60, openAt = dayOpenMin(sess.date), no = sessionNo(sess.id);
   if (S.closed[sess.id]) return ['past', '마감한 회차 · 명단을 눌러 기록을 고칠 수 있어요'];
+  const cw = inCheckout(sess, t);
+  if (cw) return ['out', `퇴실 체크 시간 · 끝나면 카드를 한 번 더 보여 주세요 (${fromMin(cw.close)}까지)`];
   switch (ph) {
     case 'future': {
       const days = Math.round((parseDate(sess.date) - parseDate(dateKey(t))) / 864e5);
@@ -2302,7 +2367,7 @@ function ruleText(sess) {
 function dayLine(st) {
   const day = sessionsOnDate(dateKey(now()));
   if (day.length < 2) return '';
-  return day.map(s => { const y = statusOf(s.id, st.t); return `${sessionNo(s.id)}회차 ${y.s ? (y.auto ? '결석' : STATUS[y.s].label) : '미체크'}`; }).join(' · ');
+  return day.map(s => { const y = statusOf(s.id, st.t); return `${sessionNo(s.id)}회차 ${y.s ? STATUS[y.s].label : '미체크'}`; }).join(' · ');
 }
 
 function renderScanSide() {
@@ -2327,6 +2392,8 @@ function renderScanSide() {
     if (d.E) items.push(['e', '조퇴', d.E]);
     if (d.X) items.push(['x', '공결', d.X]);
     items.push(['none', '미체크', d.none]);
+    const ow = S.config.checkout ? checkoutWindow(sess.date) : null;
+    if (ow && ow.last.id === sess.id && (sess.date < today || (sess.date === today && nowMin() >= ow.open))) items.push(['out', '퇴실', checkoutCount(sess.date)]);
     for (const [c, label, n] of items) counts.append(h('span', { class: c }, h('b', { class: 'tnum' }, n), label));
     const pct = n => (d.total ? (n / d.total) * 100 : 0) + '%';
     $('.p', bar).style.width = pct(d.P); $('.l', bar).style.width = pct(d.L); $('.e', bar).style.width = pct(d.E); $('.x', bar).style.width = pct(d.X);
@@ -2339,15 +2406,18 @@ function renderScanSide() {
 
 function renderRoster(sess) {
   const box = $('#roster'), keep = box.scrollTop, day = sess ? sessionsOnDate(sess.date) : [];
+  const today = dateKey(now()), ow = sess && S.config.checkout ? checkoutWindow(sess.date) : null;
+  const showOut = !!(ow && ow.last.id === sess.id && (S.closed[sess.id] || sess.date < today || (sess.date === today && nowMin() >= ow.open)));
   box.innerHTML = '';
   for (const st of studentsSorted()) {
     const x = sess ? statusOf(sess.id, st.t) : { s: '' };
     if (x.na) continue;
-    const label = !x.s ? '미체크' : x.auto ? '결석' : STATUS[x.s].label + (x.at && (x.s === 'P' || x.s === 'L') ? ' ' + x.at.slice(0, 5) : '');
+    let label = !x.s ? '미체크' : x.auto ? STATUS[x.s].label : STATUS[x.s].label + (x.at && (x.s === 'P' || x.s === 'L') ? ' ' + x.at.slice(0, 5) : '');
+    if (showOut && ['P', 'L', 'E'].includes(x.s)) { const co = checkoutOf(sess.date, st.t); label = co ? `퇴실 ${co.slice(0, 5)}` : x.noOut ? '퇴실 안 함 → 조퇴' : `${STATUS[x.s].label} · 퇴실 전`; }
     // 이날 회차들(1부·2부)의 상태를 작은 칸으로
     const dots = day.length > 1 ? h('span', { class: 'dots' }, ...day.map(s => {
       const y = statusOf(s.id, st.t);
-      return h('i', { class: (y.s ? STATUS[y.s].cls : '') + (s.id === sess.id ? ' sel' : ''), title: `${sessionNo(s.id)}회차 ${y.s ? (y.auto ? '결석' : STATUS[y.s].label) : '미체크'}` }, sessionNo(s.id));
+      return h('i', { class: (y.s ? STATUS[y.s].cls : '') + (s.id === sess.id ? ' sel' : ''), title: `${sessionNo(s.id)}회차 ${y.s ? STATUS[y.s].label : '미체크'}` }, sessionNo(s.id));
     })) : '';
     box.append(h('button', {
       class: 'stu' + (x.s ? ' ' + STATUS[x.s].cls : '') + (x.auto ? ' auto' : ''), dataset: { t: st.t }, title: '눌러서 직접 체크',
@@ -2419,7 +2489,9 @@ function showResult(r) {
   switch (r.kind) {
     case 'ok': v = { cls: 'ok', icon: '✅', name: st.name, who, msg: `출석 완료 · ${r.rec.at.slice(0, 5)}`, sub: line, sound: 'ok', say: `${st.name}, 출석` }; break;
     case 'late': v = { cls: 'late', icon: '⏰', name: st.name, who, msg: `지각 · ${r.rec.at.slice(0, 5)}`, sub: line || `수업 시작 ${r.sess.start}`, sound: 'late', say: `${st.name}, 지각` }; break;
-    case 'dup': v = { cls: 'dup', icon: '☑️', name: st.name, who, msg: `이미 ${STATUS[r.rec.s].label}했어요${r.rec.at ? ` (${r.rec.at.slice(0, 5)})` : ''}`, sub: line || '한 번만 보여 주면 돼요', sound: 'dup' }; break;
+    case 'dup': v = { cls: 'dup', icon: '☑️', name: st.name, who, msg: `이미 ${STATUS[r.rec.s].label}했어요${r.rec.at ? ` (${r.rec.at.slice(0, 5)})` : ''}`, sub: r.outFrom ? `퇴실 체크는 ${r.outFrom}부터예요 — 수업 끝날 때 한 번 더 보여 주세요` : (line || '한 번만 보여 주면 돼요'), sound: 'dup' }; break;
+    case 'out': v = { cls: 'out', icon: '👋', name: st.name, who, msg: `퇴실 완료 · ${r.at.slice(0, 5)}`, sub: '오늘도 수고했어요! 조심히 가세요', sound: 'ok', say: `${st.name}, 퇴실` }; break;
+    case 'outDup': v = { cls: 'dup', icon: '☑️', name: st.name, who, msg: `이미 퇴실했어요 (${r.at.slice(0, 5)})`, sub: '한 번만 보여 주면 돼요', sound: 'dup' }; break;
     case 'ended': v = { cls: 'dup', icon: '🏁', name: st.name, who, msg: '오늘 회차가 모두 끝났어요', sub: '기록하지 않았어요 · 필요하면 명단을 눌러 고치세요', sound: 'dup' }; break;
     case 'practice': {
       const today = dateKey(now()), todays = sessionsOnDate(today), sel = sessionById(selectedId);
@@ -2451,9 +2523,9 @@ function addRecent(r) {
   if (!r.st) return;
   const box = $('#recent');
   $('.recent-empty', box)?.remove();
-  const label = { ok: '출석', late: '지각', dup: '이미 체크', ended: '수업 끝' }[r.kind] || '연습';
-  const time = (r.rec && r.rec.at ? r.rec.at : clock(now())).slice(0, 5);
-  box.insertBefore(h('span', { class: 'chip ' + (r.kind === 'ok' ? 'p' : r.kind === 'late' ? 'l' : '') }, h('b', null, r.st.name), h('small', null, `${label} ${time}`)), $('.recent-label', box).nextSibling);
+  const label = { ok: '출석', late: '지각', dup: '이미 체크', ended: '수업 끝', out: '퇴실', outDup: '이미 퇴실' }[r.kind] || '연습';
+  const time = (r.rec && r.rec.at ? r.rec.at : r.at || clock(now())).slice(0, 5);
+  box.insertBefore(h('span', { class: 'chip ' + ({ ok: 'p', late: 'l', out: 'o' }[r.kind] || '') }, h('b', null, r.st.name), h('small', null, `${label} ${time}`)), $('.recent-label', box).nextSibling);
   $$('.chip', box).slice(10).forEach(c => c.remove());
 }
 
@@ -2461,7 +2533,7 @@ function onScanText(text) {
   const r = checkIn(text, selectedId);
   showResult(r);
   addRecent(r);
-  if (r.kind === 'ok' || r.kind === 'late') { renderScanSide(); flashChip(r.st.t); }
+  if (r.kind === 'ok' || r.kind === 'late' || r.kind === 'out') { renderScanSide(); flashChip(r.st.t); }
 }
 
 // ── 카메라 ──
@@ -2684,9 +2756,12 @@ async function closeSession() {
     return;
   }
   const left = day.map(s => [sessionNo(s.id), daySummary(s.id).none]).filter(([, n]) => n);
+  const cw = S.config.checkout ? checkoutWindow(sess.date) : null;
+  const noOut = cw ? studentsSorted().filter(st => { const r = (S.records[cw.last.id] || {})[st.t]; return r && r.by === 'qr' && (r.s === 'P' || r.s === 'L') && !checkoutOf(sess.date, st.t); }) : [];
+  const outNote = noOut.length ? `<br>퇴실 체크를 안 한 <b>${noOut.length}명</b>(${noOut.map(x => esc(x.name)).join(', ')})은 ${sessionNo(cw.last.id)}회차가 <b>조퇴</b>로 표시됩니다.` : '';
   const go = await ask(`${fmtDate(sess.date)} 출석을 마감할까요? (${nos})`,
-    left.length ? `아직 체크하지 않은 칸은 <b>결석</b>으로 표시됩니다: ${left.map(([no, n]) => `<b>${no}회차 ${n}명</b>`).join(', ')}<br>마감한 뒤에도 명단이나 출석부에서 언제든 고칠 수 있어요.`
-      : '모든 학생이 체크되었어요. 마감한 뒤에도 기록은 고칠 수 있어요.', '마감하기');
+    (left.length ? `아직 체크하지 않은 칸은 <b>결석</b>으로 표시됩니다: ${left.map(([no, n]) => `<b>${no}회차 ${n}명</b>`).join(', ')}<br>마감한 뒤에도 명단이나 출석부에서 언제든 고칠 수 있어요.`
+      : '모든 학생이 체크되었어요. 마감한 뒤에도 기록은 고칠 수 있어요.') + outNote, '마감하기');
   if (!go) return;
   day.forEach(s => { S.closed[s.id] = true; });
   save();
@@ -2718,7 +2793,7 @@ function initScan() {
 function cellView(x) {
   if (x.na) return { cls: 'na', text: '—', small: '' };
   if (!x.s) return { cls: '', text: '·', small: '' };
-  if (x.auto) return { cls: 'a auto', text: '결석', small: '' };
+  if (x.auto) return x.s === 'E' ? { cls: 'e auto', text: '조퇴', small: '퇴실X' } : { cls: 'a auto', text: '결석', small: '' };
   return { cls: STATUS[x.s].cls, text: STATUS[x.s].mark, small: x.at && (x.s === 'P' || x.s === 'L') ? x.at.slice(0, 5) : '' };
 }
 
@@ -2812,9 +2887,10 @@ function initSheet() {
 
 /* ===== 55-ui-form.js ===== */
 /* 학교 제출용 출석부: "디지털 STEAM 과학실험 B반 출석부"(한글 문서) 양식을 그대로 그리고 출석 기록으로 칸을 채웁니다 */
-// 칸에 들어갈 표시
-const FORM_MARK = { P: '○', L: '△', E: '◁', A: '×', X: '공' };
-const FORM_LEGEND = '○ 출석 · △ 지각 · ◁ 조퇴 · × 결석 · 공 공결';
+// 칸에 들어갈 표시: 학교 출석부에는 출석(○) 아니면 결석(×)만 적습니다
+//   지각 → ○(수업에 있었음) · 공결 → ○(출석 인정) · 조퇴·퇴실 체크 안 함 → ×
+const FORM_MARK = { P: '○', L: '○', X: '○', E: '×', A: '×' };
+const FORM_LEGEND = '○ 출석 · × 결석';
 const FORM_PER_PAGE = 10;    // 한 쪽에 10차시
 const FORM_MIN_ROWS = 20;    // 원본처럼 20줄 (학생이 적으면 빈 줄)
 
@@ -3000,7 +3076,11 @@ function renderRuleExample() {
     const s2 = day[1];
     txt += S.config.scanEach
       ? ` 회차마다 다시 찍어야 하고, ${esc(s2.start)} 회차는 <b>${fromMin(toMin(s2.start) + g)}까지 출석</b>이에요.`
-      : ` QR을 한 번 찍으면 그날 남은 회차(${esc(s2.start)}~${esc(s2.end)})도 <b>함께 출석</b>으로 기록돼요. 중간에 간 학생은 명단에서 조퇴로 바꾸세요.`;
+      : ` QR을 한 번 찍으면 그날 남은 회차(${esc(s2.start)}~${esc(s2.end)})도 <b>함께 출석</b>으로 기록돼요.${S.config.checkout ? '' : ' 중간에 간 학생은 명단에서 조퇴로 바꾸세요.'}`;
+  }
+  if (S.config.checkout) {
+    const w = checkoutWindow(sess.date);
+    if (w) txt += ` <b>퇴실 체크</b>: ${fromMin(w.open)}~${fromMin(w.close)}에 카드를 한 번 더 찍어요. 안 찍으면 그날 마지막 회차(${esc(w.last.start)}~${esc(w.last.end)})가 <b>조퇴</b>로 표시돼요.`;
   }
   $('#ruleExample').innerHTML = txt + ' 체크 시작 전에는 연습 모드(기록 안 됨)로 동작해요.';
 }
@@ -3009,6 +3089,7 @@ function renderSettings() {
   $('#setOpen').value = String(S.config.openBefore);
   $('#setGrace').value = String(S.config.lateGrace);
   $('#setScanMode').value = S.config.scanEach ? 'each' : 'day';
+  $('#setCheckout').value = S.config.checkout ? 'on' : 'off';
   $('#setMirror').checked = S.config.mirror;
   $('#setSound').checked = S.config.sound;
   $('#setVoice').checked = S.config.voice;
@@ -3121,6 +3202,7 @@ function initSettings() {
   num('#setOpen', 'openBefore');
   num('#setGrace', 'lateGrace');
   $('#setScanMode').onchange = e => { S.config.scanEach = e.target.value === 'each'; save(); renderRuleExample(); lastPhaseKey = ''; };
+  $('#setCheckout').onchange = e => { S.config.checkout = e.target.value === 'on'; save(); renderRuleExample(); lastPhaseKey = ''; };
   $('#setMirror').onchange = e => { S.config.mirror = e.target.checked; save(); $('#camBox').classList.toggle('mirror', S.config.mirror); };
   $('#setSound').onchange = e => { S.config.sound = e.target.checked; save(); $('#tglSound').checked = S.config.sound; };
   $('#setVoice').onchange = e => { S.config.voice = e.target.checked; save(); $('#tglVoice').checked = S.config.voice; };
@@ -3193,6 +3275,7 @@ function initSettings() {
     if (!await ask('출석 기록을 모두 지울까요?', '모든 수업의 출석·지각·결석 기록과 마감 표시가 지워집니다. 명단과 날짜는 그대로예요.<br><b>되돌릴 수 없으니</b> 먼저 백업 파일을 저장해 두세요.', '모두 지우기', true)) return;
     S.records = {};
     S.closed = {};
+    S.checkouts = {};
     save();
     refreshAll();
     toast('출석 기록을 모두 지웠어요');
