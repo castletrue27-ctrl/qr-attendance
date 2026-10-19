@@ -525,6 +525,40 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
 .recent .chip.o { border-color: rgba(62, 231, 255, .5); }
 .stu .st { overflow: hidden; text-overflow: ellipsis; }
 .sheet .cell.e.auto { background: rgba(255, 159, 92, .06); color: rgba(255, 159, 92, .75); font-weight: 600; }
+
+/* ── 화장실 · 일찍 퇴실 ── */
+.mode-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: none; }
+.mode-btn { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 16px; border: 2px solid var(--border-2); background: var(--surface); cursor: pointer; text-align: left; color: var(--text); min-height: 62px; }
+.mode-btn .mi { font-size: 30px; line-height: 1; }
+.mode-btn .mt { display: flex; flex-direction: column; min-width: 0; }
+.mode-btn b { font-size: 18px; }
+.mode-btn small { color: var(--text-dim); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mode-btn.toilet:hover, .mode-btn.toilet.on { border-color: var(--x); background: rgba(180, 155, 255, .12); }
+.mode-btn.leave:hover, .mode-btn.leave.on { border-color: var(--e); background: rgba(255, 159, 92, .12); }
+.mode-btn.on { box-shadow: 0 0 0 4px rgba(255, 255, 255, .06); }
+.cam-box.mode-toilet .cam-frame i { border-color: var(--x); filter: drop-shadow(0 0 8px rgba(180, 155, 255, .7)); }
+.cam-box.mode-leave .cam-frame i { border-color: var(--e); filter: drop-shadow(0 0 8px rgba(255, 159, 92, .7)); }
+.cam-box.mode-toilet, .cam-box.mode-leave { box-shadow: 0 0 0 3px rgba(255, 255, 255, .08), 0 20px 60px rgba(0, 0, 0, .45); }
+.scan-mode { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 3; display: flex; align-items: center; gap: 12px; padding: 9px 12px 9px 18px; border-radius: 999px; background: rgba(4, 6, 14, .88); border: 2px solid var(--border-2); font-size: 18px; font-weight: 800; white-space: nowrap; }
+.scan-mode[hidden] { display: none; }
+.cam-box.mode-toilet .scan-mode { border-color: var(--x); color: var(--x); }
+.cam-box.mode-leave .scan-mode { border-color: var(--e); color: var(--e); }
+.result.toilet { border-color: var(--x); }
+.result.toilet .r-msg { color: var(--x); }
+.recent .chip.t { border-color: rgba(180, 155, 255, .5); }
+.away-box { border-radius: 12px; background: rgba(180, 155, 255, .08); border: 1px solid rgba(180, 155, 255, .4); padding: 8px 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.away-box[hidden] { display: none; }
+.away-box > b { font-size: 13.5px; color: var(--x); }
+.away-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.away-item { display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-2); font-size: 13.5px; }
+.away-item small { color: var(--text-dim); font-weight: 700; }
+.away-item.mid { border-color: var(--l); } .away-item.mid small { color: var(--l); }
+.away-item.warn { border-color: var(--a); background: rgba(255, 92, 122, .14); animation: blink 1.4s infinite; } .away-item.warn small { color: var(--a); }
+.away-badge { font-size: 12px; }
+.stu.away { border-color: rgba(180, 155, 255, .7); }
+.stu.away-warn { border-color: var(--a); box-shadow: 0 0 0 2px rgba(255, 92, 122, .35); }
+.sheet .sum.toilet { min-width: 70px; color: var(--x); font-size: 12.5px; }
+@media (max-width: 860px) { .mode-btn small { display: none; } .scan-mode { font-size: 15px; } }
 </style>
 <style id="pageStyle">@page { size: A4 portrait; margin: 0; }</style>
 </head>
@@ -569,7 +603,12 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
               <p class="cam-msg" id="camMsg"></p>
             </div>
           </div>
+          <div class="scan-mode" id="scanModeBanner" hidden><span id="scanModeText"></span><button class="btn sm" id="scanModeCancel">취소</button></div>
           <div class="result" id="result" aria-live="assertive"></div>
+        </div>
+        <div class="mode-row" id="modeRow">
+          <button class="mode-btn toilet" data-mode="toilet"><span class="mi">🚻</span><span class="mt"><b>화장실</b><small>누르고 카드 보여 주기 · 돌아오면 카드만</small></span></button>
+          <button class="mode-btn leave" data-mode="leave"><span class="mi">🚪</span><span class="mt"><b>일찍 퇴실</b><small>먼저 가야 할 때 누르고 카드 보여 주기</small></span></button>
         </div>
         <div class="cam-bar">
           <span id="camState" class="cam-state">카메라 꺼짐</span>
@@ -592,6 +631,7 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
           <div class="counts" id="counts"></div>
           <div class="bar"><i class="p"></i><i class="l"></i><i class="e"></i><i class="x"></i></div>
         </div>
+        <div class="away-box" id="awayBox" hidden><b>🚻 화장실</b><div class="away-list" id="awayList"></div></div>
         <div class="roster-head"><b>참여 학생</b><small>카드를 안 가져온 학생은 이름을 눌러 직접 체크</small></div>
         <div class="roster" id="roster"></div>
         <div class="side-foot">
@@ -675,6 +715,11 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
           <select id="setCheckout">
             <option value="on">쓰기 — 끝나기 10분 전부터 끝난 뒤 30분까지 한 번 더 찍기</option>
             <option value="off">쓰지 않기</option>
+          </select></label>
+        <label class="field"><span>화장실 알림</span>
+          <select id="setToilet">
+            <option value="5">5분이 넘으면 알림</option><option value="10">10분이 넘으면 알림</option>
+            <option value="15">15분이 넘으면 알림</option><option value="20">20분이 넘으면 알림</option>
           </select></label>
         <label class="field"><span>지각 기준</span>
           <select id="setGrace">
@@ -768,6 +813,9 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
           <p>홈 화면의 <b>QR 출석</b> 아이콘을 누르세요. 오늘이 수업일이면 지금 회차가 자동으로 골라져 있고, 1부가 끝나면 2부로 저절로 넘어가요. 태블릿을 교탁이나 교실 입구에 세워 <b>앞 카메라가 학생 쪽</b>을 보게 두고 <b>▶ 출석 체크 시작</b>. 학생이 다 들어오면 다른 앱으로 넘어가 수업에 써도 기록은 그대로 남아요.</p></div></div>
         <div class="step"><b>3</b><div><h3>학생은 카드를 카메라에 보여 주기만</h3>
           <p>카메라에서 20~40cm 떨어져 카드를 정면으로 보여 주면 "딩동" 소리와 함께 이름이 크게 뜹니다. <b>회차 시작 시각까지는 출석</b>, 그 뒤는 <b>지각</b>으로 기록돼요. 하루 2회차라도 <b>처음에 한 번만 찍으면</b> 그날 두 회차가 함께 기록됩니다(설정에서 '회차마다 다시 찍기'로 바꿀 수 있어요). <b>수업이 끝날 때 카드를 한 번 더</b> 보여 주면 퇴실 체크가 되고(끝나기 10분 전부터), 퇴실을 안 찍고 가면 그날 마지막 회차가 자동으로 <b>조퇴</b>가 됩니다. 같은 카드를 또 보여 주면 "이미 출석"이라고만 나오고 기록은 바뀌지 않습니다. 두 명이 동시에 보여 줘도 둘 다 읽어요.</p></div></div>
+        <div class="step"><b>🚻</b><div><h3>화장실 · 일찍 퇴실</h3>
+          <p><b>화장실</b>: 카메라 아래 <b>🚻 화장실</b>을 누르고 카드를 보여 주면 나간 시각이 기록되고, 옆 칸 "화장실" 목록에 몇 분째인지 보입니다. 돌아오면 버튼 없이 <b>카드만</b> 보여 주면 돼요. 설정한 시간(기본 10분)이 넘으면 이름이 빨갛게 바뀌고 소리로 알려 줍니다. 잘못 눌렀다면 1분 안에 카드를 다시 보여 주면 취소돼요. 출석부의 <b>화장실</b> 칸과 엑셀 <b>화장실 기록</b> 시트에 횟수·시간이 남습니다.</p>
+          <p style="margin-top:6px"><b>일찍 퇴실</b>: 먼저 가야 하는 학생은 <b>🚪 일찍 퇴실</b>을 누르고 카드를 보여 주세요. 나간 시각에 진행 중이던 회차는 <b>조퇴</b>, 그 뒤 회차는 <b>결석</b>으로 기록됩니다(학교 출석부에는 둘 다 ×). 사정이 있으면 출석부에서 그 칸을 눌러 공결 등으로 바꾸세요.</p></div></div>
         <div class="step"><b>4</b><div><h3>카드를 안 가져온 학생</h3>
           <p>명단에서 이름을 누르면 <b>출석·지각·조퇴·결석·공결</b>을 직접 고를 수 있어요. 잘못 찍힌 기록도 같은 방법으로 고칩니다.</p></div></div>
         <div class="step"><b>5</b><div><h3>수업 끝 — 마감과 저장</h3>
@@ -829,7 +877,7 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
 
 /* ===== 00-util.js ===== */
 /* 공용 도구 */
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.6';
 // 태블릿용 웹 버전(https 주소)으로 만들 때 true — 명단을 빼고, 첫 화면에서 명단 파일을 불러옵니다
 const WEB_BUILD = true;
 const WEB_URL = 'https://castletrue27-ctrl.github.io/qr-attendance/';
@@ -1641,6 +1689,7 @@ const DEFAULT_CONFIG = {
   checkout: true,      // 퇴실 체크: 수업이 끝날 때 카드를 한 번 더 찍기 (안 찍으면 그날 마지막 회차 조퇴)
   checkoutBefore: 10,  // 마지막 회차 끝나기 몇 분 전부터 퇴실 체크를 받을지
   checkoutAfter: 30,   // 끝난 뒤 몇 분까지 받을지
+  toiletWarn: 10,      // 화장실에 간 지 몇 분이 지나면 선생님께 알릴지
   sound: true,
   voice: false,
   mirror: true,        // 카메라 화면 좌우 반전(거울처럼)
@@ -1695,6 +1744,7 @@ function freshState() {
     records: {},
     closed: {},
     checkouts: {},       // 날짜 → { 카드 코드: 퇴실 시각 }
+    outings: {},         // 날짜 → { 카드 코드: [{ o: 나간 시각, b: 돌아온 시각('' = 아직) }] } — 화장실
     updated: 0
   };
 }
@@ -1740,6 +1790,15 @@ function normalize(d) {
     if (!DATE_RE.test(date) || !outs || typeof outs !== 'object') continue;
     out.checkouts[date] = {};
     for (const [t, at] of Object.entries(outs)) if (/^[A-Z0-9]{4}$/.test(t) && /^\d\d:\d\d/.test(String(at))) out.checkouts[date][t] = String(at).slice(0, 8);
+  }
+  out.outings = {};
+  for (const [date, map] of Object.entries(d.outings || {})) {
+    if (!DATE_RE.test(date) || !map || typeof map !== 'object') continue;
+    out.outings[date] = {};
+    for (const [t, list] of Object.entries(map)) {
+      if (!/^[A-Z0-9]{4}$/.test(t) || !Array.isArray(list)) continue;
+      out.outings[date][t] = list.filter(x => x && /^\d\d:\d\d/.test(String(x.o))).map(x => ({ o: String(x.o).slice(0, 8), b: /^\d\d:\d\d/.test(String(x.b || '')) ? String(x.b).slice(0, 8) : '' }));
+    }
   }
   out.updated = +d.updated || 0;
   return out;
@@ -1789,6 +1848,7 @@ function removeStudent(t) {
   S.students = S.students.filter(s => s.t !== t);
   for (const recs of Object.values(S.records)) delete recs[t];
   for (const outs of Object.values(S.checkouts)) delete outs[t];
+  for (const map of Object.values(S.outings)) delete map[t];
   save();
 }
 
@@ -1837,6 +1897,32 @@ function checkoutWindow(date) {
 }
 const checkoutOf = (date, t) => (S.checkouts[date] || {})[t] || '';
 const checkoutCount = date => Object.keys(S.checkouts[date] || {}).length;
+
+// ── 화장실: 버튼을 누르고 찍으면 나감, 돌아와서 카드만 찍으면 들어옴 ──
+const secOf = hms => { const [h, mi, se] = String(hms).split(':').map(Number); return h * 3600 + mi * 60 + (se || 0); };
+const outingsOf = (date, t) => (S.outings[date] || {})[t] || [];
+const openOuting = (date, t) => { const l = outingsOf(date, t), x = l[l.length - 1]; return x && !x.b ? x : null; };
+// 한 번 다녀온 시간(초): 아직 안 돌아왔으면 지금(오늘) 또는 그날 마지막 회차 끝까지
+function outingSec(date, x) {
+  let end = x.b;
+  if (!end) { const w = checkoutWindow(date); end = date === dateKey(now()) ? clock(now()) : w ? fromMin(toMin(w.last.end)) + ':00' : x.o; }
+  return Math.max(0, secOf(end) - secOf(x.o));
+}
+// 학생 한 명의 화장실 합계 (전체 날짜)
+function outingTotal(t) {
+  let count = 0, sec = 0;
+  for (const date of Object.keys(S.outings)) for (const x of outingsOf(date, t)) { count++; sec += outingSec(date, x); }
+  return { count, min: Math.round(sec / 60) };
+}
+// 오늘 화장실에 가 있는 학생들 [{ st, x, sec }]
+function awayNow() {
+  const today = dateKey(now()), out = [];
+  for (const [t, list] of Object.entries(S.outings[today] || {})) {
+    const x = list[list.length - 1], st = studentByToken(t);
+    if (x && !x.b && st) out.push({ st, x, sec: outingSec(today, x) });
+  }
+  return out.sort((a, b) => b.sec - a.sec);
+}
 // 이 회차가 그날 마지막 회차이고, QR로 들어왔는데 퇴실 체크 없이 퇴실 시간이 지났는지 (선생님이 직접 고친 기록은 그대로 둠)
 function checkoutMissed(sess, t, r) {
   if (!S.config.checkout || !r || r.by !== 'qr' || (r.s !== 'P' && r.s !== 'L')) return false;
@@ -1860,7 +1946,15 @@ function statusOf(id, t) {
   const sess = sessionById(id), st = studentByToken(t);
   if (st && st.added && sess && sess.date < st.added) return { s: '', na: true };
   const r = S.records[id] && S.records[id][t];
-  if (r && sess && checkoutMissed(sess, t, r)) return { s: 'E', at: r.at, by: r.by, auto: true, noOut: true, entry: r.s };
+  if (r && sess && r.by === 'qr' && (r.s === 'P' || r.s === 'L')) {
+    const co = checkoutOf(sess.date, t);
+    if (co) {
+      // 일찍 퇴실: 나간 시각에 진행 중이던 회차는 조퇴, 그 뒤에 시작하는 회차는 결석 (마지막 회차는 퇴실 체크 시간 전이면 조퇴)
+      const c = toMin(co), w = checkoutWindow(sess.date), limit = w && w.last.id === sess.id ? w.open : toMin(sess.end);
+      if (c < toMin(sess.start)) return { s: 'A', auto: true, early: true, out: co, entry: r.s };
+      if (c < limit) return { s: 'E', at: r.at, by: r.by, auto: true, early: true, out: co, entry: r.s };
+    } else if (checkoutMissed(sess, t, r)) return { s: 'E', at: r.at, by: r.by, auto: true, noOut: true, entry: r.s };
+  }
   if (r) return Object.assign({ auto: false }, r);
   if (sess && sessionFinished(sess)) return { s: 'A', auto: true };
   return { s: '' };
@@ -1874,31 +1968,70 @@ function setStatus(id, t, s) {
 }
 
 // QR 글자 → 출석 처리 결과
-//   kind: ok(출석) · late(지각) · dup(이미 체크) · practice(연습: 저장 안 함) · ended(오늘 회차가 모두 끝남)
+//   mode: auto(그냥 찍기) · toilet(화장실 버튼을 누르고 찍기) · leave(일찍 퇴실 버튼을 누르고 찍기)
+//   kind: ok(출석) · late(지각) · dup(이미 체크) · out(퇴실, early=일찍) · outDup(이미 퇴실)
+//         · toilet(화장실 나감) · back(돌아옴) · backOut(돌아오며 퇴실) · toiletCancel(1분 안에 다시 찍어 취소)
+//         · notIn(입실 전에 버튼을 누름) · practice(연습: 저장 안 함) · ended(오늘 회차가 모두 끝남)
 //         · unknown(명단에 없는 카드) · foreign(다른 QR)
-// 한 번 찍으면 오늘 아직 끝나지 않은 회차에 모두 기록합니다(설정에서 '회차마다 다시 찍기'면 지금 회차만).
-function checkIn(text, selId) {
+// 그냥 찍으면: 화장실에 가 있으면 돌아옴 → 퇴실 체크 시간이면 퇴실 → 아니면 입실(오늘 남은 회차 모두, 설정에서 '회차마다'면 지금 회차만)
+function checkIn(text, selId, mode = 'auto') {
   const m0 = /^([A-Z0-9]+)-([A-Z0-9]{4})$/.exec(String(text).trim().toUpperCase());
   if (!m0 || m0[1] !== QR_PREFIX) return { kind: 'foreign', text };
   const st = studentByToken(m0[2]);
   if (!st) return { kind: 'unknown', text };
   const t = now(), today = dateKey(t), sel = sessionById(selId), m = nowMin(t);
-  if (!sel || sel.date !== today) return { kind: 'practice', st, phase: sel ? sessionPhase(sel, t) : 'none' };
-  if (m < dayOpenMin(today)) return { kind: 'practice', st, phase: 'before' };
-  const w = S.config.checkout ? checkoutWindow(today) : null;
-  if (w && m >= w.open && m <= w.close) {
+  if (!sel || sel.date !== today) return { kind: 'practice', st, mode, phase: sel ? sessionPhase(sel, t) : 'none' };
+  if (m < dayOpenMin(today)) return { kind: 'practice', st, mode, phase: 'before' };
+  const day = sessionsOnDate(today), at = clock(t), w = checkoutWindow(today);
+  const inWindow = !!(S.config.checkout && w && m >= w.open && m <= w.close);
+  const outs = S.checkouts[today] = S.checkouts[today] || {};
+  const entered = day.some(s => { const r = (S.records[s.id] || {})[st.t]; return r && ['P', 'L', 'E'].includes(r.s); });
+
+  // 화장실에서 돌아옴 (버튼과 상관없이 카드만 보이면)
+  const open = openOuting(today, st.t);
+  if (open) {
+    const sec = secOf(at) - secOf(open.o);
+    if (sec < 60 && mode !== 'leave') {            // 1분 안에 다시 찍음 → 잘못 누른 것으로 보고 취소
+      S.outings[today][st.t].pop();
+      save();
+      return { kind: 'toiletCancel', st };
+    }
+    open.b = at;
+    const mins = Math.round(sec / 60);
+    if (mode === 'leave' || inWindow) {
+      if (!outs[st.t]) outs[st.t] = at;
+      save();
+      return { kind: 'backOut', st, at, mins, early: !inWindow };
+    }
+    save();
+    return { kind: 'back', st, at, mins };
+  }
+  if (outs[st.t]) return { kind: 'outDup', st, at: outs[st.t] };
+
+  if (mode === 'toilet' || mode === 'leave') {
+    if (!entered) return { kind: 'notIn', st, mode };
+    if (mode === 'toilet') {
+      const map = S.outings[today] = S.outings[today] || {};
+      (map[st.t] = map[st.t] || []).push({ o: at, b: '' });
+      save();
+      return { kind: 'toilet', st, at };
+    }
+    outs[st.t] = at;
+    save();
+    return { kind: 'out', st, at, sess: w && w.last, early: !(w && m >= w.open) };
+  }
+
+  if (inWindow) {
     const lastRec = (S.records[w.last.id] || {})[st.t];
     if (lastRec && ['P', 'L', 'E'].includes(lastRec.s)) {
-      const outs = S.checkouts[today] = S.checkouts[today] || {};
-      if (outs[st.t]) return { kind: 'outDup', st, at: outs[st.t] };
-      outs[st.t] = clock(t);
+      outs[st.t] = at;
       save();
-      return { kind: 'out', st, at: outs[st.t], sess: w.last };
+      return { kind: 'out', st, at, sess: w.last };
     }
   }
-  const left = sessionsOnDate(today).filter(s => m < toMin(s.end));
+  const left = day.filter(s => m < toMin(s.end));
   if (!left.length) return { kind: 'ended', st };
-  const targets = S.config.scanEach ? [left[0]] : left, at = clock(t);
+  const targets = S.config.scanEach ? [left[0]] : left;
   let first = null, dupRec = null;
   for (const s of targets) {
     const recs = S.records[s.id] = S.records[s.id] || {}, cur = recs[st.t];
@@ -1907,7 +2040,7 @@ function checkIn(text, selId) {
     recs[st.t] = rec;
     if (!first) first = { rec, sess: s };
   }
-  if (!first) return { kind: 'dup', st, rec: dupRec.rec, sess: dupRec.sess, outFrom: w && m < w.open ? fromMin(w.open) : '' };
+  if (!first) return { kind: 'dup', st, rec: dupRec.rec, sess: dupRec.sess, outFrom: S.config.checkout && w && m < w.open ? fromMin(w.open) : '' };
   save();
   return { kind: first.rec.s === 'P' ? 'ok' : 'late', st, rec: first.rec, sess: first.sess };
 }
@@ -1965,7 +2098,7 @@ function importRoster(text) {
   const next = normalize({
     config: Object.assign({}, S.config, { title: d.title || S.config.title, term: d.term || S.config.term, form: Object.assign({}, S.config.form, d.form || {}) }),
     students: d.students, sessions: Array.isArray(d.sessions) && d.sessions.length ? d.sessions : S.sessions,
-    records: S.records, closed: S.closed, checkouts: S.checkouts, updated: S.updated
+    records: S.records, closed: S.closed, checkouts: S.checkouts, outings: S.outings, updated: S.updated
   });
   if (!next.students.length) throw new Error('명단에 학생이 없어요');
   S = next;
@@ -2139,6 +2272,7 @@ function attendanceWorkbook() {
         const x = statusOf(sess.id, st.t);
         if (x.na) return { v: '—', s: 'center' };
         if (!x.s) return { v: '', s: 'center' };
+        if (x.early) return { v: `${STATUS[x.s].label}(${x.out.slice(0, 5)} 퇴실)`, s: x.s === 'E' ? 'E' : 'auto' };
         if (x.auto) return x.s === 'E' ? { v: '조퇴(퇴실X)', s: 'E' } : { v: '결석', s: 'auto' };
         return { v: x.s === 'L' && x.at ? `지각 ${x.at.slice(0, 5)}` : STATUS[x.s].label, s: x.s };
       }),
@@ -2179,7 +2313,14 @@ function attendanceWorkbook() {
   }
   const sheet3 = { name: '수업 일정', freeze: { rows: 2 }, cols: [6, 12, 13, 26, 7, 7, 7, 7, 7, 8], heights: { 0: 26 }, rows: dayRows };
 
-  return Xlsx.book([sheet1, ...formSheets(), sheet2, sheet3]);
+  const tRows = [[{ v: '화장실 기록', s: 'title' }], ['날짜', '반', '번호', '이름', '나간 시각', '돌아온 시각', '걸린 시간(분)', '비고'].map(v => ({ v, s: 'head' }))];
+  for (const date of Object.keys(S.outings).sort()) for (const st of students) for (const x of outingsOf(date, st.t)) {
+    const min = Math.round(outingSec(date, x) / 60);
+    tRows.push([{ v: fmtDate(date), s: 'center' }, { v: stuLabel(st), s: 'center' }, { v: st.n, s: 'num' }, { v: st.name, s: 'left' }, { v: x.o, s: 'center' }, { v: x.b || '', s: 'center' },
+      { v: min, s: min >= S.config.toiletWarn ? 'L' : 'num' }, { v: x.b ? '' : '돌아온 체크 없음', s: 'center' }]);
+  }
+  const sheet4 = { name: '화장실 기록', freeze: { rows: 2 }, cols: [12, 6, 6, 10, 10, 11, 13, 16], heights: { 0: 26 }, rows: tRows };
+  return Xlsx.book([sheet1, ...formSheets(), sheet2, sheet4, sheet3]);
 }
 
 // 학교 출석부 양식(디지털 STEAM 과학실험 B반 출석부 모양) — 10차시씩 한 시트, A4 세로 한 장
@@ -2245,12 +2386,13 @@ let popCtx = null;
 function openPop(anchor, id, t, onDone) {
   const st = studentByToken(t), sess = sessionById(id);
   if (!st || !sess) return;
-  const cur = statusOf(id, t);
+  const cur = statusOf(id, t), co = checkoutOf(sess.date, t);
+  const trips = outingsOf(sess.date, t).map(x => `🚻 ${x.o.slice(0, 5)}~${x.b ? x.b.slice(0, 5) : '?'} (${Math.round(outingSec(sess.date, x) / 60)}분)`);
   const pop = $('#pop');
   pop.innerHTML = '';
   pop.append(
     h('h4', null, `${st.name} `, h('small', { class: 'tnum' }, `${stuLabel(st)}·${st.n}번`)),
-    h('div', { class: 'pop-sub' }, `${sessionNo(id)}회차 · ${fmtDate(sess.date, true)} ${sess.start}~${sess.end}` + (cur.at ? ` · 체크 ${cur.at.slice(0, 5)}` : '') + (cur.by === 'qr' ? ' (QR)' : cur.by === 'hand' ? ' (직접 입력)' : '')),
+    h('div', { class: 'pop-sub' }, `${sessionNo(id)}회차 · ${fmtDate(sess.date, true)} ${sess.start}~${sess.end}` + (cur.at ? ` · 체크 ${cur.at.slice(0, 5)}` : '') + (cur.by === 'qr' ? ' (QR)' : cur.by === 'hand' ? ' (직접 입력)' : '') + (co ? ` · 퇴실 ${co.slice(0, 5)}` : '') + (trips.length ? ' · ' + trips.join(', ') : '')),
     h('div', { class: 'pop-btns' },
       ...STATUS_ORDER.map(k => h('button', { class: STATUS[k].cls + (cur.s === k && !cur.auto ? ' cur' : ''), onclick: () => pick(k) }, STATUS[k].label)),
       h('button', { class: 'clear', onclick: () => pick('') }, '기록 지우기'))
@@ -2414,6 +2556,8 @@ function renderRoster(sess) {
     if (x.na) continue;
     let label = !x.s ? '미체크' : x.auto ? STATUS[x.s].label : STATUS[x.s].label + (x.at && (x.s === 'P' || x.s === 'L') ? ' ' + x.at.slice(0, 5) : '');
     if (showOut && ['P', 'L', 'E'].includes(x.s)) { const co = checkoutOf(sess.date, st.t); label = co ? `퇴실 ${co.slice(0, 5)}` : x.noOut ? '퇴실 안 함 → 조퇴' : `${STATUS[x.s].label} · 퇴실 전`; }
+    if (x.early) label = `${STATUS[x.s].label} · ${x.out.slice(0, 5)} 일찍 퇴실`;
+    const away = sess && sess.date === today && openOuting(today, st.t);
     // 이날 회차들(1부·2부)의 상태를 작은 칸으로
     const dots = day.length > 1 ? h('span', { class: 'dots' }, ...day.map(s => {
       const y = statusOf(s.id, st.t);
@@ -2422,7 +2566,8 @@ function renderRoster(sess) {
     box.append(h('button', {
       class: 'stu' + (x.s ? ' ' + STATUS[x.s].cls : '') + (x.auto ? ' auto' : ''), dataset: { t: st.t }, title: '눌러서 직접 체크',
       onclick: e => { if (sess) openPop(e.currentTarget, sess.id, st.t, renderScanSide); }
-    }, h('span', { class: 'nm-row' }, h('span', { class: 'nm' }, st.name), dots), h('span', { class: 'cl' }, `${stuLabel(st)} · ${st.n}번`), h('span', { class: 'st tnum' }, label)));
+    }, h('span', { class: 'nm-row' }, h('span', { class: 'nm' }, st.name), away ? h('span', { class: 'away-badge', title: '화장실' }, '🚻') : '', dots), h('span', { class: 'cl' }, `${stuLabel(st)} · ${st.n}번`), h('span', { class: 'st tnum' }, label)));
+    if (away) box.lastChild.classList.add('away');
   }
   box.scrollTop = keep;
 }
@@ -2432,6 +2577,46 @@ function flashChip(t) {
   if (!el) return;
   el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
   el.scrollIntoView({ block: 'nearest' });
+}
+
+// ── 화장실에 간 학생: 옆 칸 목록과 시간, 오래 걸리면 한 번 알림 ──
+const warnedOutings = new Set();
+function renderAway() {
+  const box = $('#awayBox'), list = $('#awayList'), sess = sessionById(selectedId), today = dateKey(now());
+  const items = sess && sess.date === today ? awayNow() : [], warn = S.config.toiletWarn * 60;
+  box.hidden = !items.length;
+  list.innerHTML = '';
+  for (const { st, x, sec } of items) {
+    const lv = sec >= warn ? 'warn' : sec >= warn / 2 ? 'mid' : '';
+    list.append(h('span', { class: 'away-item ' + lv, title: `${x.o.slice(0, 5)}에 나감` }, h('b', null, st.name), h('small', { class: 'tnum' }, `${Math.floor(sec / 60)}분`)));
+    const chip = $(`.stu[data-t="${st.t}"]`);
+    if (chip) chip.classList.toggle('away-warn', sec >= warn);
+    const key = st.t + '|' + x.o;
+    if (sec >= warn && !warnedOutings.has(key)) {
+      warnedOutings.add(key);
+      toast(`🚻 ${st.name} 학생이 화장실에 간 지 ${S.config.toiletWarn}분이 넘었어요`, 'warn');
+      beep('bad');
+    }
+  }
+}
+
+// ── 버튼을 누르고 찍기: 화장실 · 일찍 퇴실 (20초 안에 카드를 보여 주면 됨) ──
+let scanMode = 'auto', modeUntil = 0;
+const MODE_TEXT = { toilet: '🚻 화장실 — 카드를 보여 주세요', leave: '🚪 일찍 퇴실 — 카드를 보여 주세요' };
+function setScanMode(mode) {
+  scanMode = mode;
+  modeUntil = mode === 'auto' ? 0 : Date.now() + 20000;
+  $('#camBox').classList.toggle('mode-toilet', mode === 'toilet');
+  $('#camBox').classList.toggle('mode-leave', mode === 'leave');
+  $$('#modeRow .mode-btn').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+  $('#scanModeBanner').hidden = mode === 'auto';
+  if (mode !== 'auto') { Cam.lastSeen.clear(); updateModeBanner(); }
+}
+function updateModeBanner() {
+  if (scanMode === 'auto') return;
+  const left = Math.ceil((modeUntil - Date.now()) / 1000);
+  if (left <= 0) { setScanMode('auto'); return; }
+  $('#scanModeText').textContent = `${MODE_TEXT[scanMode]} · ${left}초`;
 }
 
 let lastPhaseKey = '';
@@ -2446,6 +2631,8 @@ function tick() {
   const key = (sess ? sess.id + sessionPhase(sess, t) + modeOf(sess)[1] : '') + (cur ? cur.id : '') + dateKey(t);
   if (key !== lastPhaseKey) { lastPhaseKey = key; renderSessSelect(); if (currentTab === 'scan') renderScanSide(); }
   else if (currentTab === 'scan') { const [c, txt] = phaseInfo(sess); $('#phase').className = 'phase ' + c; $('#phase').textContent = txt; }
+  if (currentTab === 'scan') renderAway();
+  updateModeBanner();
 }
 
 // ── 소리 ──
@@ -2489,9 +2676,17 @@ function showResult(r) {
   switch (r.kind) {
     case 'ok': v = { cls: 'ok', icon: '✅', name: st.name, who, msg: `출석 완료 · ${r.rec.at.slice(0, 5)}`, sub: line, sound: 'ok', say: `${st.name}, 출석` }; break;
     case 'late': v = { cls: 'late', icon: '⏰', name: st.name, who, msg: `지각 · ${r.rec.at.slice(0, 5)}`, sub: line || `수업 시작 ${r.sess.start}`, sound: 'late', say: `${st.name}, 지각` }; break;
-    case 'dup': v = { cls: 'dup', icon: '☑️', name: st.name, who, msg: `이미 ${STATUS[r.rec.s].label}했어요${r.rec.at ? ` (${r.rec.at.slice(0, 5)})` : ''}`, sub: r.outFrom ? `퇴실 체크는 ${r.outFrom}부터예요 — 수업 끝날 때 한 번 더 보여 주세요` : (line || '한 번만 보여 주면 돼요'), sound: 'dup' }; break;
-    case 'out': v = { cls: 'out', icon: '👋', name: st.name, who, msg: `퇴실 완료 · ${r.at.slice(0, 5)}`, sub: '오늘도 수고했어요! 조심히 가세요', sound: 'ok', say: `${st.name}, 퇴실` }; break;
-    case 'outDup': v = { cls: 'dup', icon: '☑️', name: st.name, who, msg: `이미 퇴실했어요 (${r.at.slice(0, 5)})`, sub: '한 번만 보여 주면 돼요', sound: 'dup' }; break;
+    case 'dup': v = { cls: 'dup', icon: '☑️', name: st.name, who, msg: `이미 ${STATUS[r.rec.s].label}했어요${r.rec.at ? ` (${r.rec.at.slice(0, 5)})` : ''}`, sub: r.outFrom ? `퇴실 체크는 ${r.outFrom}부터예요 · 일찍 가야 하면 '🚪 일찍 퇴실'을 누르고 찍으세요` : (line || '한 번만 보여 주면 돼요'), sound: 'dup' }; break;
+    case 'out': v = r.early
+      ? { cls: 'out', icon: '🚪', name: st.name, who, msg: `일찍 퇴실 · ${r.at.slice(0, 5)}`, sub: line ? line + '로 기록돼요' : '조퇴로 기록돼요', sound: 'ok', say: `${st.name}, 퇴실` }
+      : { cls: 'out', icon: '👋', name: st.name, who, msg: `퇴실 완료 · ${r.at.slice(0, 5)}`, sub: '오늘도 수고했어요! 조심히 가세요', sound: 'ok', say: `${st.name}, 퇴실` }; break;
+    case 'outDup': v = { cls: 'dup', icon: '☑️', name: st.name, who, msg: `이미 퇴실했어요 (${r.at.slice(0, 5)})`, sub: '다시 들어왔다면 선생님께 말해 주세요', sound: 'dup' }; break;
+    case 'toilet': v = { cls: 'toilet', icon: '🚻', name: st.name, who, msg: `화장실 다녀오세요 · ${r.at.slice(0, 5)}`, sub: '돌아오면 버튼 없이 카드만 한 번 더 보여 주세요', sound: 'dup', say: `${st.name}, 화장실` }; break;
+    case 'back': { const long = r.mins >= S.config.toiletWarn;
+      v = { cls: long ? 'late' : 'ok', icon: '↩️', name: st.name, who, msg: `돌아왔어요 · ${r.mins}분`, sub: long ? `${S.config.toiletWarn}분이 넘었어요` : '', sound: long ? 'late' : 'ok', say: `${st.name}, 복귀` }; break; }
+    case 'backOut': v = { cls: 'out', icon: '👋', name: st.name, who, msg: `${r.early ? '일찍 퇴실' : '퇴실 완료'} · ${r.at.slice(0, 5)}`, sub: `화장실 ${r.mins}분 다녀옴` + (r.early && line ? ` · ${line}로 기록돼요` : ''), sound: 'ok', say: `${st.name}, 퇴실` }; break;
+    case 'toiletCancel': v = { cls: 'dup', icon: '↩️', name: st.name, who, msg: '화장실 취소', sub: '1분 안에 다시 찍어서 취소했어요', sound: 'dup' }; break;
+    case 'notIn': v = { cls: 'bad', icon: '❗', name: st.name, who, msg: '아직 입실 체크를 안 했어요', sub: '버튼 없이 카드를 먼저 보여 주세요', sound: 'bad' }; break;
     case 'ended': v = { cls: 'dup', icon: '🏁', name: st.name, who, msg: '오늘 회차가 모두 끝났어요', sub: '기록하지 않았어요 · 필요하면 명단을 눌러 고치세요', sound: 'dup' }; break;
     case 'practice': {
       const today = dateKey(now()), todays = sessionsOnDate(today), sel = sessionById(selectedId);
@@ -2523,17 +2718,19 @@ function addRecent(r) {
   if (!r.st) return;
   const box = $('#recent');
   $('.recent-empty', box)?.remove();
-  const label = { ok: '출석', late: '지각', dup: '이미 체크', ended: '수업 끝', out: '퇴실', outDup: '이미 퇴실' }[r.kind] || '연습';
+  const label = r.kind === 'out' && r.early ? '일찍 퇴실' : r.kind === 'back' ? `복귀 ${r.mins}분` : { ok: '출석', late: '지각', dup: '이미 체크', ended: '수업 끝', out: '퇴실', outDup: '이미 퇴실', toilet: '화장실', backOut: '퇴실', toiletCancel: '화장실 취소', notIn: '입실 전' }[r.kind] || '연습';
   const time = (r.rec && r.rec.at ? r.rec.at : r.at || clock(now())).slice(0, 5);
-  box.insertBefore(h('span', { class: 'chip ' + ({ ok: 'p', late: 'l', out: 'o' }[r.kind] || '') }, h('b', null, r.st.name), h('small', null, `${label} ${time}`)), $('.recent-label', box).nextSibling);
+  box.insertBefore(h('span', { class: 'chip ' + ({ ok: 'p', late: 'l', out: 'o', backOut: 'o', toilet: 't', back: 'p' }[r.kind] || '') }, h('b', null, r.st.name), h('small', null, `${label} ${time}`)), $('.recent-label', box).nextSibling);
   $$('.chip', box).slice(10).forEach(c => c.remove());
 }
 
 function onScanText(text) {
-  const r = checkIn(text, selectedId);
+  const mode = scanMode;
+  const r = checkIn(text, selectedId, mode);
+  if (mode !== 'auto' && r.st) setScanMode('auto');
   showResult(r);
   addRecent(r);
-  if (r.kind === 'ok' || r.kind === 'late' || r.kind === 'out') { renderScanSide(); flashChip(r.st.t); }
+  if (['ok', 'late', 'out', 'backOut', 'toilet', 'back', 'toiletCancel'].includes(r.kind)) { renderScanSide(); renderAway(); flashChip(r.st.t); }
 }
 
 // ── 카메라 ──
@@ -2775,6 +2972,8 @@ function initScan() {
   $('#camSwitch').onclick = switchCamera;
   $('#camSwitch').hidden = true;
   $('#sessSelect').onchange = e => { selectedId = e.target.value || null; autoSelected = false; lastPhaseKey = ''; renderScanSide(); };
+  $$('#modeRow .mode-btn').forEach(b => { b.onclick = () => setScanMode(scanMode === b.dataset.mode ? 'auto' : b.dataset.mode); });
+  $('#scanModeCancel').onclick = () => setScanMode('auto');
   $('#closeBtn').onclick = closeSession;
   $('#xlsxBtn2').onclick = saveXlsx;
   const snd = $('#tglSound'), vc = $('#tglVoice');
@@ -2793,6 +2992,7 @@ function initScan() {
 function cellView(x) {
   if (x.na) return { cls: 'na', text: '—', small: '' };
   if (!x.s) return { cls: '', text: '·', small: '' };
+  if (x.early) return { cls: STATUS[x.s].cls + ' auto', text: STATUS[x.s].label, small: x.out.slice(0, 5) + ' 퇴실' };
   if (x.auto) return x.s === 'E' ? { cls: 'e auto', text: '조퇴', small: '퇴실X' } : { cls: 'a auto', text: '결석', small: '' };
   return { cls: STATUS[x.s].cls, text: STATUS[x.s].mark, small: x.at && (x.s === 'P' || x.s === 'L') ? x.at.slice(0, 5) : '' };
 }
@@ -2819,7 +3019,7 @@ function renderSheet() {
     r1.append(h('th', { colspan: d.sessions.length, class: 'day' + (d.date === today ? ' today' : '') + (closed ? ' closed' : '') }, fmtDate(d.date)));
     for (const s of d.sessions) r2.append(h('th', { class: 'part' + (d.date === today ? ' today' : ''), title: `${s.start}~${s.end}${s.note ? ' · ' + s.note : ''}` }, `${sessionNo(s.id)}회차`, h('small', null, s.start)));
   }
-  ['출석', '지각', '조퇴', '결석', '공결', '참여율'].forEach(t => r1.append(h('th', { rowspan: 2 }, t)));
+  ['출석', '지각', '조퇴', '결석', '공결', '화장실', '참여율'].forEach(t => r1.append(h('th', { rowspan: 2 }, t)));
   thead.append(r1, r2);
   const tbody = h('tbody');
   for (const st of students) {
@@ -2835,7 +3035,9 @@ function renderSheet() {
     }
     const sum = summaryOf(st.t);
     const full = sum.held === sessions.length && sessions.length > 0 && sum.attended + sum.X === sum.held;
+    const tl = outingTotal(st.t);
     tr.append(...['P', 'L', 'E', 'A', 'X'].map(k => h('td', { class: 'sum tnum' }, sum[k] || '')),
+      h('td', { class: 'sum tnum toilet', title: '화장실 다녀온 횟수 · 모두 합한 시간' }, tl.count ? `${tl.count}회 ${tl.min}분` : ''),
       h('td', { class: 'sum rate tnum' + (full ? ' full' : ''), title: full ? '모든 회차 참여' : '' }, sum.rate == null ? '—' : Math.round(sum.rate * 100) + '%'));
     tbody.append(tr);
   }
@@ -2845,7 +3047,7 @@ function renderSheet() {
     const d = daySummary(s.id), any = d.total - d.none;
     fr.append(h('td', { class: 'tnum' }, any ? `${d.P + d.L + d.E}/${d.total}` : ''));
   }
-  for (let i = 0; i < 6; i++) fr.append(h('td'));
+  for (let i = 0; i < 7; i++) fr.append(h('td'));
   tfoot.append(fr);
   table.append(thead, tbody, tfoot);
   // 둘째 머리줄이 첫째 줄 바로 아래에 붙어 있도록
@@ -2858,7 +3060,7 @@ function printSheet() {
   let html = `<div class="print-sheet"><h1>${esc(S.config.title)} 출석부</h1><p>${esc(S.config.term)} · ${esc(sheetRangeText())} · ${students.length}명 · ${dateKey(now())} ${clock(now()).slice(0, 5)} 기준</p>` +
     '<table><thead><tr><th rowspan="2">반</th><th rowspan="2">번호</th><th rowspan="2">이름</th>';
   for (const d of days) html += `<th colspan="${d.sessions.length}">${esc(fmtDate(d.date))}</th>`;
-  html += '<th rowspan="2">출석</th><th rowspan="2">지각</th><th rowspan="2">조퇴</th><th rowspan="2">결석</th><th rowspan="2">공결</th><th rowspan="2">참여율</th></tr><tr>';
+  html += '<th rowspan="2">출석</th><th rowspan="2">지각</th><th rowspan="2">조퇴</th><th rowspan="2">결석</th><th rowspan="2">공결</th><th rowspan="2">화장실</th><th rowspan="2">참여율</th></tr><tr>';
   for (const s of sessions) html += `<th>${sessionNo(s.id)}</th>`;
   html += '</tr></thead><tbody>';
   for (const st of students) {
@@ -2868,11 +3070,12 @@ function printSheet() {
       html += `<td class="${v.cls}">${x.s || x.na ? esc(v.text) : ''}</td>`;
     }
     const sum = summaryOf(st.t);
-    html += ['P', 'L', 'E', 'A', 'X'].map(k => `<td>${sum[k] || ''}</td>`).join('') + `<td>${sum.rate == null ? '' : Math.round(sum.rate * 100) + '%'}</td></tr>`;
+    const tl = outingTotal(st.t);
+    html += ['P', 'L', 'E', 'A', 'X'].map(k => `<td>${sum[k] || ''}</td>`).join('') + `<td>${tl.count ? tl.count + '회 ' + tl.min + '분' : ''}</td><td>${sum.rate == null ? '' : Math.round(sum.rate * 100) + '%'}</td></tr>`;
   }
   html += '</tbody><tfoot><tr><td colspan="3">참여 인원</td>';
   for (const s of sessions) { const d = daySummary(s.id), any = d.total - d.none; html += `<td>${any ? d.P + d.L + d.E : ''}</td>`; }
-  html += '<td colspan="6"></td></tr></tfoot></table><p style="margin-top:3mm">숫자 = 회차 · ○ 출석 · 연한 결석 = 체크 기록 없이 끝난 회차 · 참여율 = (출석+지각+조퇴) ÷ (진행된 회차 − 공결)</p></div>';
+  html += '<td colspan="7"></td></tr></tfoot></table><p style="margin-top:3mm">숫자 = 회차 · ○ 출석 · 연한 결석 = 체크 기록 없이 끝난 회차 · 참여율 = (출석+지각+조퇴) ÷ (진행된 회차 − 공결)</p></div>';
   printPages(html, true);
 }
 
@@ -3090,6 +3293,7 @@ function renderSettings() {
   $('#setGrace').value = String(S.config.lateGrace);
   $('#setScanMode').value = S.config.scanEach ? 'each' : 'day';
   $('#setCheckout').value = S.config.checkout ? 'on' : 'off';
+  $('#setToilet').value = String(S.config.toiletWarn);
   $('#setMirror').checked = S.config.mirror;
   $('#setSound').checked = S.config.sound;
   $('#setVoice').checked = S.config.voice;
@@ -3203,6 +3407,7 @@ function initSettings() {
   num('#setGrace', 'lateGrace');
   $('#setScanMode').onchange = e => { S.config.scanEach = e.target.value === 'each'; save(); renderRuleExample(); lastPhaseKey = ''; };
   $('#setCheckout').onchange = e => { S.config.checkout = e.target.value === 'on'; save(); renderRuleExample(); lastPhaseKey = ''; };
+  $('#setToilet').onchange = e => { S.config.toiletWarn = +e.target.value; save(); };
   $('#setMirror').onchange = e => { S.config.mirror = e.target.checked; save(); $('#camBox').classList.toggle('mirror', S.config.mirror); };
   $('#setSound').onchange = e => { S.config.sound = e.target.checked; save(); $('#tglSound').checked = S.config.sound; };
   $('#setVoice').onchange = e => { S.config.voice = e.target.checked; save(); $('#tglVoice').checked = S.config.voice; };
@@ -3276,6 +3481,7 @@ function initSettings() {
     S.records = {};
     S.closed = {};
     S.checkouts = {};
+    S.outings = {};
     save();
     refreshAll();
     toast('출석 기록을 모두 지웠어요');
