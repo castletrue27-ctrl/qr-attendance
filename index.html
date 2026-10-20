@@ -559,6 +559,50 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
 .stu.away-warn { border-color: var(--a); box-shadow: 0 0 0 2px rgba(255, 92, 122, .35); }
 .sheet .sum.toilet { min-width: 70px; color: var(--x); font-size: 12.5px; }
 @media (max-width: 860px) { .mode-btn small { display: none; } .scan-mode { font-size: 15px; } }
+
+/* ── ④ 안 온 학생 · ⑦ 응원 ── */
+#rosterHint.warn { color: var(--a); font-weight: 700; }
+.stu.missing { border-color: rgba(255, 92, 122, .75); background: rgba(255, 92, 122, .07); }
+.stu.missing .st { color: var(--a); }
+.star { font-size: 11px; margin-left: 2px; }
+.nm-row .nm { flex: 0 1 auto; }
+.nm-row .dots { margin-left: auto; }
+.result .r-cheer { margin-top: 10px; display: inline-block; padding: 6px 16px; border-radius: 999px; background: rgba(255, 207, 92, .12); border: 1px solid rgba(255, 207, 92, .45); color: var(--l); font-size: 18px; font-weight: 800; }
+.result.win { border-color: var(--l); box-shadow: 0 0 0 8px rgba(255, 207, 92, .2), 0 30px 80px rgba(0, 0, 0, .6); }
+.result.win .r-icon { font-size: 76px; animation: pop .5s; }
+.result.win .r-msg { color: var(--l); font-size: 30px; }
+
+/* ── ⑧ 카메라 위치 · 사용법 ── */
+.cam-hint { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 22px; border-radius: 18px; bottom: 16px; }
+.cam-hint b { font-size: clamp(17px, 2.1vw, 24px); }
+.cam-hint small { color: var(--text-dim); font-size: 13px; font-weight: 600; }
+.cam-box.busy .cam-hint { opacity: 0; }
+.how-line { display: flex; justify-content: center; gap: 8px 22px; flex-wrap: wrap; font-size: 13.5px; color: var(--text-dim); flex: none; }
+.how-line b { color: var(--text); }
+.cam-pointer { position: fixed; z-index: 44; display: none; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: var(--cyan); color: #04121a; font-weight: 900; font-size: 14px; box-shadow: 0 0 0 4px rgba(62, 231, 255, .25), 0 8px 24px rgba(0, 0, 0, .4); pointer-events: none; }
+
+body.cam-live .cam-pointer { display: inline-flex; }
+body.cam-live:has(#tab-scan:not(.on)) .cam-pointer { display: none; }
+.cam-pointer.top { top: calc(var(--top-h) + 6px); left: 50%; transform: translateX(-50%); animation: nudgeUp 1.4s ease-in-out infinite; }
+.cam-pointer.bottom { bottom: 8px; left: 50%; transform: translateX(-50%); animation: nudgeDown 1.4s ease-in-out infinite; }
+.cam-pointer.left { left: 6px; top: 50%; transform: translateY(-50%); animation: nudgeLeft 1.4s ease-in-out infinite; }
+.cam-pointer.right { right: 6px; top: 50%; transform: translateY(-50%); animation: nudgeRight 1.4s ease-in-out infinite; }
+@keyframes nudgeUp { 50% { transform: translate(-50%, -5px); } }
+@keyframes nudgeDown { 50% { transform: translate(-50%, 5px); } }
+@keyframes nudgeLeft { 50% { transform: translate(-5px, -50%); } }
+@keyframes nudgeRight { 50% { transform: translate(5px, -50%); } }
+
+/* ── ⑨ 화면 테두리 번쩍임 ── */
+#flash { position: fixed; inset: 0; z-index: 46; pointer-events: none; opacity: 0; --fc: var(--p);
+  box-shadow: inset 0 0 0 14px var(--fc), inset 0 0 140px 30px color-mix(in srgb, var(--fc) 40%, transparent); }
+#flash.go { animation: flashFrame 1.2s ease-out; }
+@keyframes flashFrame { 0% { opacity: 0; } 10% { opacity: 1; } 55% { opacity: .85; } 100% { opacity: 0; } }
+#flash[data-kind="late"] { --fc: var(--l); }
+#flash[data-kind="out"], #flash[data-kind="dup"] { --fc: var(--cyan); }
+#flash[data-kind="toilet"], #flash[data-kind="practice"] { --fc: var(--x); }
+#flash[data-kind="bad"] { --fc: var(--a); }
+#flash[data-kind="win"] { --fc: var(--l); }
+@media print { #flash, .cam-pointer { display: none !important; } }
 </style>
 <style id="pageStyle">@page { size: A4 portrait; margin: 0; }</style>
 </head>
@@ -592,7 +636,7 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
           <video id="video" playsinline muted></video>
           <canvas id="overlay"></canvas>
           <div class="cam-frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-          <div class="cam-hint" id="camHint">QR 카드를 네모 안에 보여 주세요</div>
+          <div class="cam-hint" id="camHint"><b id="camHintMain">📷 카드를 위쪽 카메라에 보여 주세요</b><small>20~40cm 떨어져서 정면으로 · 화면 속 네모 안에 들어오게</small></div>
           <div class="mode-badge" id="modeBadge"></div>
           <div class="cam-start" id="camStart">
             <div class="cam-start-inner">
@@ -610,6 +654,7 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
           <button class="mode-btn toilet" data-mode="toilet"><span class="mi">🚻</span><span class="mt"><b>화장실</b><small>누르고 카드 보여 주기 · 돌아오면 카드만</small></span></button>
           <button class="mode-btn leave" data-mode="leave"><span class="mi">🚪</span><span class="mt"><b>일찍 퇴실</b><small>먼저 가야 할 때 누르고 카드 보여 주기</small></span></button>
         </div>
+        <div class="how-line"><span><b>들어올 때 · 끝나고 나갈 때</b> → 카드만</span><span><b>화장실 · 먼저 갈 때</b> → 버튼 누르고 카드</span></div>
         <div class="cam-bar">
           <span id="camState" class="cam-state">카메라 꺼짐</span>
           <span class="grow"></span>
@@ -632,7 +677,7 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
           <div class="bar"><i class="p"></i><i class="l"></i><i class="e"></i><i class="x"></i></div>
         </div>
         <div class="away-box" id="awayBox" hidden><b>🚻 화장실</b><div class="away-list" id="awayList"></div></div>
-        <div class="roster-head"><b>참여 학생</b><small>카드를 안 가져온 학생은 이름을 눌러 직접 체크</small></div>
+        <div class="roster-head"><b>참여 학생</b><small id="rosterHint">카드를 안 가져온 학생은 이름을 눌러 직접 체크</small></div>
         <div class="roster" id="roster"></div>
         <div class="side-foot">
           <button class="btn" id="closeBtn">✅ 오늘 출석 마감</button>
@@ -730,6 +775,11 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
       </div>
       <div class="panel">
         <h2>카메라 · 소리</h2>
+        <label class="field"><span>태블릿 앞 카메라 위치</span>
+          <select id="setCamPos">
+            <option value="top">화면 위쪽 (가로로 세웠을 때 · 갤럭시 탭 기본)</option>
+            <option value="left">화면 왼쪽</option><option value="right">화면 오른쪽</option><option value="bottom">화면 아래쪽</option>
+          </select></label>
         <label class="field"><span>사용할 카메라</span><select id="setCamera"><option value="">기본 카메라</option></select></label>
         <label class="tgl block"><input type="checkbox" id="setMirror"><span></span>카메라 화면을 거울처럼 보이기 (QR 맞추기 쉬움)</label>
         <label class="tgl block"><input type="checkbox" id="setSound"><span></span>체크할 때 효과음</label>
@@ -864,6 +914,8 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
     <p class="setup-tip">파일 고르는 창에서 왼쪽 위 ☰ 메뉴 → <b>Drive(구글 드라이브)</b> → 클로드 폴더</p>
   </div>
 </div>
+<div id="flash" aria-hidden="true"></div>
+<div class="cam-pointer top" id="camPointer" aria-hidden="true"></div>
 <div id="print-area"></div>
 <div id="toast" role="status"></div>
 <div id="pop" class="pop" hidden></div>
@@ -877,7 +929,7 @@ dialog h3 { margin: 0 0 10px; font-size: 19px; }
 
 /* ===== 00-util.js ===== */
 /* 공용 도구 */
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.8';
 // 태블릿용 웹 버전(https 주소)으로 만들 때 true — 명단을 빼고, 첫 화면에서 명단 파일을 불러옵니다
 const WEB_BUILD = true;
 const WEB_URL = 'https://castletrue27-ctrl.github.io/qr-attendance/';
@@ -1690,6 +1742,7 @@ const DEFAULT_CONFIG = {
   checkoutBefore: 10,  // 마지막 회차 끝나기 몇 분 전부터 퇴실 체크를 받을지
   checkoutAfter: 30,   // 끝난 뒤 몇 분까지 받을지
   toiletWarn: 10,      // 화장실에 간 지 몇 분이 지나면 선생님께 알릴지
+  camPos: 'top',       // 태블릿 앞 카메라가 화면의 어느 쪽에 있는지 (top · left · right · bottom) — 안내 화살표
   sound: true,
   voice: false,
   mirror: true,        // 카메라 화면 좌우 반전(거울처럼)
@@ -2044,6 +2097,36 @@ function checkIn(text, selId, mode = 'auto') {
   save();
   return { kind: first.rec.s === 'P' ? 'ok' : 'late', st, rec: first.rec, sess: first.sess };
 }
+
+// ── 응원: 연속 출석 · 개근 · 완주 ──
+// 이 회차까지 연속으로 '출석'한 회차 수 — 공결은 건너뛰고, 지각·조퇴·결석이면 다시 0부터
+function streakUpTo(t, sessId) {
+  let n = 0;
+  for (const s of sessionsSorted()) {
+    const x = statusOf(s.id, t);
+    if (!x.na) { if (x.s === 'P') n++; else if (x.s !== 'X') n = 0; }
+    if (s.id === sessId) break;
+  }
+  return n;
+}
+// 개근 중: 지금까지 기록된 회차가 모두 출석(또는 공결) — 지각·조퇴·결석 없음
+function perfectSoFar(t) {
+  let held = 0;
+  for (const s of S.sessions) {
+    const x = statusOf(s.id, t);
+    if (x.na || !x.s) continue;
+    held++;
+    if (x.s !== 'P' && x.s !== 'X') return false;
+  }
+  return held > 0;
+}
+// 완주: 모든 회차를 출석·지각·공결로 마침 (조퇴·결석 없음)
+function completedAll(t) {
+  const ss = S.sessions;
+  return ss.length > 0 && ss.every(s => { const x = statusOf(s.id, t); return x.na || ['P', 'L', 'X'].includes(x.s); });
+}
+const sessionsAfterDate = date => S.sessions.filter(s => s.date > date).length;
+const lastSessionDate = () => { const ss = sessionsSorted(); return ss.length ? ss[ss.length - 1].date : ''; };
 
 // 학생 한 명의 합계
 function summaryOf(t) {
@@ -2550,8 +2633,15 @@ function renderRoster(sess) {
   const box = $('#roster'), keep = box.scrollTop, day = sess ? sessionsOnDate(sess.date) : [];
   const today = dateKey(now()), ow = sess && S.config.checkout ? checkoutWindow(sess.date) : null;
   const showOut = !!(ow && ow.last.id === sess.id && (S.closed[sess.id] || sess.date < today || (sess.date === today && nowMin() >= ow.open)));
+  // ④ 회차가 시작된 뒤(지각 시간부터)에는 아직 안 온 학생을 맨 위로
+  const started = !!(sess && sess.date === today && ['late', 'over'].includes(sessionPhase(sess)) && !S.closed[sess.id]);
+  let list = studentsSorted();
+  if (started) { const miss = st => !statusOf(sess.id, st.t).s; list = [...list.filter(miss), ...list.filter(st => !miss(st))]; }
+  const missing = started ? list.filter(st => !statusOf(sess.id, st.t).s && !statusOf(sess.id, st.t).na).length : 0;
+  $('#rosterHint').textContent = missing ? `아직 안 온 학생 ${missing}명이 맨 위에 있어요` : '카드를 안 가져온 학생은 이름을 눌러 직접 체크';
+  $('#rosterHint').classList.toggle('warn', !!missing);
   box.innerHTML = '';
-  for (const st of studentsSorted()) {
+  for (const st of list) {
     const x = sess ? statusOf(sess.id, st.t) : { s: '' };
     if (x.na) continue;
     let label = !x.s ? '미체크' : x.auto ? STATUS[x.s].label : STATUS[x.s].label + (x.at && (x.s === 'P' || x.s === 'L') ? ' ' + x.at.slice(0, 5) : '');
@@ -2566,8 +2656,9 @@ function renderRoster(sess) {
     box.append(h('button', {
       class: 'stu' + (x.s ? ' ' + STATUS[x.s].cls : '') + (x.auto ? ' auto' : ''), dataset: { t: st.t }, title: '눌러서 직접 체크',
       onclick: e => { if (sess) openPop(e.currentTarget, sess.id, st.t, renderScanSide); }
-    }, h('span', { class: 'nm-row' }, h('span', { class: 'nm' }, st.name), away ? h('span', { class: 'away-badge', title: '화장실' }, '🚻') : '', dots), h('span', { class: 'cl' }, `${stuLabel(st)} · ${st.n}번`), h('span', { class: 'st tnum' }, label)));
+    }, h('span', { class: 'nm-row' }, h('span', { class: 'nm' }, st.name), perfectSoFar(st.t) ? h('span', { class: 'star', title: '지각·결석 없이 개근 중' }, '⭐') : '', away ? h('span', { class: 'away-badge', title: '화장실' }, '🚻') : '', dots), h('span', { class: 'cl' }, `${stuLabel(st)} · ${st.n}번`), h('span', { class: 'st tnum' }, label)));
     if (away) box.lastChild.classList.add('away');
+    if (started && !x.s) box.lastChild.classList.add('missing');
   }
   box.scrollTop = keep;
 }
@@ -2598,6 +2689,17 @@ function renderAway() {
       beep('alert');
     }
   }
+}
+
+// ⑧ 태블릿 앞 카메라가 있는 쪽을 가리키는 안내
+const CAM_SIDE = { top: ['위쪽', '▲'], left: ['왼쪽', '◀'], right: ['오른쪽', '▶'], bottom: ['아래쪽', '▼'] };
+function renderCamGuide() {
+  const pos = CAM_SIDE[S.config.camPos] ? S.config.camPos : 'top', [word, arrow] = CAM_SIDE[pos];
+  const p = $('#camPointer');
+  p.className = 'cam-pointer ' + pos;
+  p.innerHTML = '';
+  p.append(h('b', null, arrow), h('span', null, '카메라'));
+  $('#camHintMain').textContent = `📷 카드를 ${word} 카메라에 보여 주세요`;
 }
 
 // ── 버튼을 누르고 찍기: 화장실 · 일찍 퇴실 (20초 안에 카드를 보여 주면 됨) ──
@@ -2645,6 +2747,7 @@ const TONES = {
   dup:  { notes: [[880, 0]], len: 0.55, gain: 0.3, partials: [[1, 1], [2, 0.15]] },                                              // 딩 한 번 — 이미 체크
   soft: { notes: [[523.25, 0]], len: 0.5, gain: 0.16, partials: [[1, 1]] },                                                       // 작게 한 번 — 화장실
   alert: { notes: [[698.46, 0], [698.46, 0.28]], len: 0.5, gain: 0.3, partials: [[1, 1], [2, 0.2]] },                            // 선생님 알림
+  fanfare: { notes: [[523.25, 0], [659.25, 0.14], [783.99, 0.28], [1046.5, 0.44]], len: 1.4, gain: 0.42, partials: [[1, 1], [2, 0.3], [3, 0.1]] }, // 도미솔도 — 완주
   bad:  { wave: 'square', notes: [[196, 0], [196, 0.22]], len: 0.22, gain: 0.12, partials: [[1, 1]], flat: true }               // 부- 부- — 잘못된 카드
 };
 function playTone(ctx, dest, kind, t0) {
@@ -2686,13 +2789,35 @@ function speak(text) {
 }
 
 // ── 체크 결과 보여 주기 ──
-let resultTimer = 0;
+let resultTimer = 0, busyTimer = 0;
+// ⑨ 찍는 순간 화면 테두리 전체가 결과 색으로 번쩍 (멀리서도 보이게)
+function flashScreen(kind) {
+  const el = $('#flash');
+  el.dataset.kind = kind;
+  el.classList.remove('go');
+  void el.offsetWidth;
+  el.classList.add('go');
+}
+// ⑦ 출석할 때 응원: 연속 출석 · 완주까지 남은 회차
+function cheerLine(r) {
+  if (!r.st || !r.sess) return '';
+  const left = sessionsAfterDate(r.sess.date), streak = streakUpTo(r.st.t, r.sess.id), parts = [];
+  if (r.kind === 'ok' && streak >= 2) parts.push(`🔥 연속 출석 ${streak}회째`);
+  parts.push(left ? `완주까지 앞으로 ${left}회` : '🏁 오늘이 마지막 날! 끝까지 파이팅');
+  return parts.join(' · ');
+}
+
 function showResult(r) {
   const st = r.st, who = st ? `${st.g}학년 ${st.c}반 ${st.n}번` : '', line = st ? dayLine(st) : '';
   let v;
+  // 🏆 마지막 날 퇴실할 때 모든 회차를 마쳤으면 완주 축하
+  if (r.kind === 'out' && !r.early && r.at && dateKey(now()) === lastSessionDate() && completedAll(st.t)) {
+    r = Object.assign({}, r, { kind: 'win' });
+  }
   switch (r.kind) {
-    case 'ok': v = { cls: 'ok', icon: '✅', name: st.name, who, msg: `출석 완료 · ${r.rec.at.slice(0, 5)}`, sub: line, sound: 'ok', say: `${st.name}, 출석` }; break;
-    case 'late': v = { cls: 'late', icon: '⏰', name: st.name, who, msg: `지각 · ${r.rec.at.slice(0, 5)}`, sub: line || `수업 시작 ${r.sess.start}`, sound: 'late', say: `${st.name}, 지각` }; break;
+    case 'win': v = { cls: 'win', icon: '🏆', name: st.name, who, msg: `${S.sessions.length}회 완주! 축하해요`, sub: '끝까지 해낸 당신이 최고예요 👏', sound: 'fanfare', say: `${st.name}, 완주 축하해요`, cheer: '' }; break;
+    case 'ok': v = { cls: 'ok', icon: '✅', name: st.name, who, msg: `출석 완료 · ${r.rec.at.slice(0, 5)}`, sub: line, sound: 'ok', say: `${st.name}, 출석`, cheer: cheerLine(r) }; break;
+    case 'late': v = { cls: 'late', icon: '⏰', name: st.name, who, msg: `지각 · ${r.rec.at.slice(0, 5)}`, sub: line || `수업 시작 ${r.sess.start}`, sound: 'late', say: `${st.name}, 지각`, cheer: cheerLine(r) }; break;
     case 'dup': v = { cls: 'dup', icon: '☑️', name: st.name, who, msg: `이미 ${STATUS[r.rec.s].label}했어요${r.rec.at ? ` (${r.rec.at.slice(0, 5)})` : ''}`, sub: r.outFrom ? `퇴실 체크는 ${r.outFrom}부터예요 · 일찍 가야 하면 '🚪 일찍 퇴실'을 누르고 찍으세요` : (line || '한 번만 보여 주면 돼요'), sound: 'dup' }; break;
     case 'out': v = r.early
       ? { cls: 'out', icon: '🚪', name: st.name, who, msg: `일찍 퇴실 · ${r.at.slice(0, 5)}`, sub: line ? line + '로 기록돼요' : '조퇴로 기록돼요', sound: 'out', say: `${st.name}, 퇴실` }
@@ -2722,11 +2847,15 @@ function showResult(r) {
   box.className = 'result ' + v.cls;
   box.innerHTML = '';
   box.append(h('div', { class: 'r-icon' }, v.icon), h('div', { class: 'r-name' }, v.name), v.who ? h('div', { class: 'r-who' }, v.who) : '',
-    h('div', { class: 'r-msg' }, v.msg), v.sub ? h('div', { class: 'r-sub' }, v.sub) : '');
+    h('div', { class: 'r-msg' }, v.msg), v.sub ? h('div', { class: 'r-sub' }, v.sub) : '', v.cheer ? h('div', { class: 'r-cheer' }, v.cheer) : '');
   void box.offsetWidth;
   box.classList.add('show');
   clearTimeout(resultTimer);
-  resultTimer = setTimeout(() => box.classList.remove('show'), r.kind === 'ok' ? 2000 : 2800);
+  resultTimer = setTimeout(() => box.classList.remove('show'), r.kind === 'win' ? 5000 : r.kind === 'ok' ? 2200 : 2800);
+  flashScreen(v.cls);
+  $('#camBox').classList.add('busy');
+  clearTimeout(busyTimer);
+  busyTimer = setTimeout(() => $('#camBox').classList.remove('busy'), r.kind === 'win' ? 5000 : 2600);
   beep(v.sound);
   if (v.say) speak(v.say);
 }
@@ -2737,7 +2866,7 @@ function addRecent(r) {
   $('.recent-empty', box)?.remove();
   const label = r.kind === 'out' && r.early ? '일찍 퇴실' : r.kind === 'back' ? `복귀 ${r.mins}분` : { ok: '출석', late: '지각', dup: '이미 체크', ended: '수업 끝', out: '퇴실', outDup: '이미 퇴실', toilet: '화장실', backOut: '퇴실', toiletCancel: '화장실 취소', notIn: '입실 전' }[r.kind] || '연습';
   const time = (r.rec && r.rec.at ? r.rec.at : r.at || clock(now())).slice(0, 5);
-  box.insertBefore(h('span', { class: 'chip ' + ({ ok: 'p', late: 'l', out: 'o', backOut: 'o', toilet: 't', back: 'p' }[r.kind] || '') }, h('b', null, r.st.name), h('small', null, `${label} ${time}`)), $('.recent-label', box).nextSibling);
+  box.insertBefore(h('span', { class: 'chip ' + ({ ok: 'p', late: 'l', out: 'o', backOut: 'o', toilet: 't', back: 'p', win: 'p' }[r.kind] || '') }, h('b', null, r.st.name), h('small', null, `${label} ${time}`)), $('.recent-label', box).nextSibling);
   $$('.chip', box).slice(10).forEach(c => c.remove());
 }
 
@@ -2803,6 +2932,8 @@ async function startCamera(deviceId) {
   setCamState(`${(track && track.label) || '카메라'} · ${v.videoWidth}×${v.videoHeight}`, 'on');
   $('#camStart').hidden = true;
   $('#camBox').classList.add('live');
+  document.body.classList.add('cam-live');
+  renderCamGuide();
   track.addEventListener('ended', () => { if (Cam.stream === stream) { stopCamera(); $('#camMsg').textContent = '카메라 연결이 끊겼어요. 다시 시작을 눌러 주세요.'; } });
   listCameras();
   initDetector();
@@ -2821,6 +2952,7 @@ function stopCamera(keepUI) {
   if (Cam.wake) { Cam.wake.release().catch(() => {}); Cam.wake = null; }
   if (!keepUI) {
     $('#camBox').classList.remove('live');
+    document.body.classList.remove('cam-live');
     $('#camStart').hidden = false;
     setCamState('카메라 꺼짐');
   }
@@ -3311,6 +3443,7 @@ function renderSettings() {
   $('#setScanMode').value = S.config.scanEach ? 'each' : 'day';
   $('#setCheckout').value = S.config.checkout ? 'on' : 'off';
   $('#setToilet').value = String(S.config.toiletWarn);
+  $('#setCamPos').value = S.config.camPos || 'top';
   $('#setMirror').checked = S.config.mirror;
   $('#setSound').checked = S.config.sound;
   $('#setVoice').checked = S.config.voice;
@@ -3425,6 +3558,7 @@ function initSettings() {
   $('#setScanMode').onchange = e => { S.config.scanEach = e.target.value === 'each'; save(); renderRuleExample(); lastPhaseKey = ''; };
   $('#setCheckout').onchange = e => { S.config.checkout = e.target.value === 'on'; save(); renderRuleExample(); lastPhaseKey = ''; };
   $('#setToilet').onchange = e => { S.config.toiletWarn = +e.target.value; save(); };
+  $('#setCamPos').onchange = e => { S.config.camPos = e.target.value; save(); renderCamGuide(); };
   $('#setMirror').onchange = e => { S.config.mirror = e.target.checked; save(); $('#camBox').classList.toggle('mirror', S.config.mirror); };
   $('#setSound').onchange = e => { S.config.sound = e.target.checked; save(); $('#tglSound').checked = S.config.sound; };
   $('#setVoice').onchange = e => { S.config.voice = e.target.checked; save(); $('#tglVoice').checked = S.config.voice; };
@@ -3592,6 +3726,7 @@ window.__qrAttendance = {
   state: () => JSON.parse(JSON.stringify(S)),
   cardPages: layout => cardPagesHtml(layout, studentsSorted()),
   scanText: text => onScanText(text),
+  setStatus: (id, t, s) => setStatus(id, t, s),
   // 효과음을 소리 없이 그려 [샘플, 샘플레이트] 돌려줌 (시험용)
   renderTone: async kind => {
     const rate = 44100, ctx = new OfflineAudioContext(1, rate * 3, rate);
