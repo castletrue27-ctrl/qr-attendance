@@ -205,7 +205,7 @@ input[type=date], input[type=time] { color-scheme: dark; }
 .phase { font-size: 15px; font-weight: 700; min-height: 22px; }
 .phase.open { color: var(--p); } .phase.late { color: var(--l); } .phase.over, .phase.past { color: var(--text-dim); } .phase.before, .phase.future { color: var(--x); }
 .counts { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
-.counts span { flex: 1; min-width: 60px; text-align: center; padding: 6px 4px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 12.5px; color: var(--text-dim); line-height: 1.25; }
+.counts span { flex: 1; min-width: 50px; text-align: center; padding: 6px 4px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 12.5px; color: var(--text-dim); line-height: 1.25; }
 .counts span b { display: block; font-size: 22px; color: var(--text); font-weight: 900; }
 .counts .p b { color: var(--p); } .counts .l b { color: var(--l); } .counts .none b { color: var(--text-dim); }
 .bar { display: flex; height: 7px; border-radius: 7px; overflow: hidden; background: var(--surface-3); margin-top: 10px; }
@@ -603,6 +603,23 @@ body.cam-live:has(#tab-scan:not(.on)) .cam-pointer { display: none; }
 #flash[data-kind="bad"] { --fc: var(--a); }
 #flash[data-kind="win"] { --fc: var(--l); }
 @media print { #flash, .cam-pointer { display: none !important; } }
+
+/* ── 기말고사 카운트다운 ── */
+.exam-cd { position: absolute; right: 14px; top: 14px; z-index: 4; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; padding: 8px 14px 9px; border-radius: 16px;
+  background: rgba(4, 6, 14, .82); border: 1px solid rgba(255, 107, 196, .45); box-shadow: 0 0 0 3px rgba(255, 107, 196, .08); pointer-events: none; }
+.exam-cd[hidden] { display: none; }
+.exam-cd .ex-name { font-size: 12.5px; color: var(--text-dim); font-weight: 700; white-space: nowrap; }
+.exam-cd .ex-row { display: flex; align-items: baseline; gap: 10px; }
+.exam-cd .ex-dday { font-size: 26px; font-weight: 900; letter-spacing: -0.02em; background: linear-gradient(120deg, var(--pink), var(--violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.exam-cd .ex-time { font-size: 17px; font-weight: 800; color: var(--text); }
+.exam-cd.on { border-color: var(--l); }
+.exam-cd.on .ex-dday { background: none; color: var(--l); }
+.exam-grid { display: grid; grid-template-columns: auto 1.4fr 1fr 1fr; gap: 0 14px; align-items: end; }
+.exam-grid .tgl { margin-bottom: 18px; }
+@media (max-width: 860px) {
+  .exam-cd { padding: 6px 10px; } .exam-cd .ex-name { font-size: 11px; } .exam-cd .ex-dday { font-size: 20px; } .exam-cd .ex-time { font-size: 14px; }
+  .exam-grid { grid-template-columns: 1fr 1fr; }
+}
 </style>
 <style id="pageStyle">@page { size: A4 portrait; margin: 0; }</style>
 </head>
@@ -638,6 +655,7 @@ body.cam-live:has(#tab-scan:not(.on)) .cam-pointer { display: none; }
           <div class="cam-frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
           <div class="cam-hint" id="camHint"><b id="camHintMain">📷 카드를 위쪽 카메라에 보여 주세요</b><small>20~40cm 떨어져서 정면으로 · 화면 속 네모 안에 들어오게</small></div>
           <div class="mode-badge" id="modeBadge"></div>
+          <div class="exam-cd" id="examCd" hidden><span class="ex-name" id="examName"></span><span class="ex-row"><b class="ex-dday tnum" id="examDday"></b><span class="ex-time tnum" id="examTime"></span></span></div>
           <div class="cam-start" id="camStart">
             <div class="cam-start-inner">
               <div class="big-icon">📷</div>
@@ -793,6 +811,16 @@ body.cam-live:has(#tab-scan:not(.on)) .cam-pointer { display: none; }
         <p class="hint">출석부·엑셀·카드 위쪽에 들어갑니다.</p>
       </div>
       <div class="panel wide">
+        <h2>기말고사 카운트다운</h2>
+        <p class="hint">출석 체크 화면 카메라 오른쪽 위에 시험까지 남은 시간이 1초마다 줄어들며 보입니다. 시험 기간에는 <b>D-DAY</b>, 끝나면 저절로 사라져요.</p>
+        <div class="exam-grid">
+          <label class="tgl"><input type="checkbox" id="exShow"><span></span>보이기</label>
+          <label class="field"><span>시험 이름</span><input id="exName" maxlength="20"></label>
+          <label class="field"><span>시작일</span><input type="date" id="exStart"></label>
+          <label class="field"><span>끝나는 날</span><input type="date" id="exEnd"></label>
+        </div>
+      </div>
+      <div class="panel wide">
         <h2>학교 출석부 양식</h2>
         <p class="hint">출석부 탭 → <b>학교 출석부 양식</b>(디지털 STEAM 과학실험 B반 출석부와 같은 모양)의 제목과 담당교사 칸에 들어갑니다. 학번은 학년·반·번호로 만들어져요(예: 2학년 5반 1번 → 20501).</p>
         <div class="form-grid">
@@ -929,7 +957,7 @@ body.cam-live:has(#tab-scan:not(.on)) .cam-pointer { display: none; }
 
 /* ===== 00-util.js ===== */
 /* 공용 도구 */
-const APP_VERSION = '1.8';
+const APP_VERSION = '1.9';
 // 태블릿용 웹 버전(https 주소)으로 만들 때 true — 명단을 빼고, 첫 화면에서 명단 파일을 불러옵니다
 const WEB_BUILD = true;
 const WEB_URL = 'https://castletrue27-ctrl.github.io/qr-attendance/';
@@ -1742,6 +1770,8 @@ const DEFAULT_CONFIG = {
   checkoutBefore: 10,  // 마지막 회차 끝나기 몇 분 전부터 퇴실 체크를 받을지
   checkoutAfter: 30,   // 끝난 뒤 몇 분까지 받을지
   toiletWarn: 10,      // 화장실에 간 지 몇 분이 지나면 선생님께 알릴지
+  // 기말고사 카운트다운 — 방과후 발표자료의 2차 정기시험 일정 (12.9 수 ~ 12.11 금)
+  exam: { show: true, name: '기말고사', start: '2026-12-09', end: '2026-12-11' },
   camPos: 'top',       // 태블릿 앞 카메라가 화면의 어느 쪽에 있는지 (top · left · right · bottom) — 안내 화살표
   sound: true,
   voice: false,
@@ -1815,6 +1845,8 @@ function normalize(d) {
   if (!d || typeof d !== 'object' || !Array.isArray(d.students) || !Array.isArray(d.sessions)) throw new Error('출석 자료 형식이 아닙니다');
   const out = freshState();
   out.config = Object.assign({}, DEFAULT_CONFIG, d.config || {});
+  const ex = Object.assign({}, DEFAULT_CONFIG.exam, (d.config && d.config.exam) || {});
+  out.config.exam = { show: ex.show !== false, name: String(ex.name || '기말고사').slice(0, 20), start: DATE_RE.test(ex.start) ? ex.start : DEFAULT_CONFIG.exam.start, end: DATE_RE.test(ex.end) && ex.end >= ex.start ? ex.end : (DATE_RE.test(ex.start) ? ex.start : DEFAULT_CONFIG.exam.end) };
   out.config.form = cleanForm(Object.assign({}, DEFAULT_CONFIG.form, (d.config && d.config.form) || {}));
   out.students = d.students.filter(s => s && /^[A-Z0-9]{4}$/.test(s.t) && s.name).map(s => ({
     t: s.t, g: +s.g || GRADE, c: +s.c || 0, n: +s.n || 0, name: String(s.name).slice(0, 20), added: DATE_RE.test(s.added || '') ? s.added : undefined
@@ -2721,6 +2753,34 @@ function updateModeBanner() {
   $('#scanModeText').textContent = `${MODE_TEXT[scanMode]} · ${left}초`;
 }
 
+// ── 기말고사 실시간 카운트다운 ──
+// 시작일 0시까지 남은 시간 · D-day는 날짜로 셈 (방과후 발표자료와 같은 방식)
+function examInfo(t = now()) {
+  const ex = S.config.exam;
+  if (!ex || !ex.show || !ex.start) return null;
+  const start = parseDate(ex.start), end = parseDate(ex.end || ex.start);
+  end.setHours(23, 59, 59);
+  if (t > end) return null;
+  const md = d => `${d.getMonth() + 1}.${d.getDate()}(${WEEK[d.getDay()]})`;
+  if (t >= start) return { name: `📝 ${ex.name} 기간`, dday: 'D-DAY', time: '시험 화이팅!', on: true };
+  const sec = Math.floor((start - t) / 1000), days = Math.floor(sec / 86400);
+  return {
+    name: `📝 ${ex.name}까지 · ${md(start)}`,
+    dday: 'D-' + Math.round((start - parseDate(dateKey(t))) / 864e5),
+    time: `${days}일 ${pad2(Math.floor(sec % 86400 / 3600))}:${pad2(Math.floor(sec % 3600 / 60))}:${pad2(sec % 60)}`,
+    on: false
+  };
+}
+function renderExam() {
+  const box = $('#examCd'), x = examInfo();
+  box.hidden = !x;
+  if (!x) return;
+  box.classList.toggle('on', x.on);
+  $('#examName').textContent = x.name;
+  $('#examDday').textContent = x.dday;
+  $('#examTime').textContent = x.time;
+}
+
 let lastPhaseKey = '';
 function tick() {
   const t = now();
@@ -2733,7 +2793,7 @@ function tick() {
   const key = (sess ? sess.id + sessionPhase(sess, t) + modeOf(sess)[1] : '') + (cur ? cur.id : '') + dateKey(t);
   if (key !== lastPhaseKey) { lastPhaseKey = key; renderSessSelect(); if (currentTab === 'scan') renderScanSide(); }
   else if (currentTab === 'scan') { const [c, txt] = phaseInfo(sess); $('#phase').className = 'phase ' + c; $('#phase').textContent = txt; }
-  if (currentTab === 'scan') renderAway();
+  if (currentTab === 'scan') { renderAway(); renderExam(); }
   updateModeBanner();
 }
 
@@ -3444,6 +3504,10 @@ function renderSettings() {
   $('#setCheckout').value = S.config.checkout ? 'on' : 'off';
   $('#setToilet').value = String(S.config.toiletWarn);
   $('#setCamPos').value = S.config.camPos || 'top';
+  $('#exShow').checked = S.config.exam.show;
+  if (document.activeElement !== $('#exName')) $('#exName').value = S.config.exam.name;
+  $('#exStart').value = S.config.exam.start;
+  $('#exEnd').value = S.config.exam.end;
   $('#setMirror').checked = S.config.mirror;
   $('#setSound').checked = S.config.sound;
   $('#setVoice').checked = S.config.voice;
@@ -3559,6 +3623,19 @@ function initSettings() {
   $('#setCheckout').onchange = e => { S.config.checkout = e.target.value === 'on'; save(); renderRuleExample(); lastPhaseKey = ''; };
   $('#setToilet').onchange = e => { S.config.toiletWarn = +e.target.value; save(); };
   $('#setCamPos').onchange = e => { S.config.camPos = e.target.value; save(); renderCamGuide(); };
+  $('#exShow').onchange = e => { S.config.exam.show = e.target.checked; save(); renderExam(); };
+  $('#exName').oninput = e => { S.config.exam.name = e.target.value.trim() || '기말고사'; save(); renderExam(); };
+  const exDate = () => {
+    const a = $('#exStart').value, b = $('#exEnd').value;
+    if (!/^\d{4}-\d\d-\d\d$/.test(a)) { toast('시작일을 확인해 주세요', 'warn'); return; }
+    S.config.exam.start = a;
+    S.config.exam.end = /^\d{4}-\d\d-\d\d$/.test(b) && b >= a ? b : a;
+    $('#exEnd').value = S.config.exam.end;
+    save();
+    renderExam();
+  };
+  $('#exStart').onchange = exDate;
+  $('#exEnd').onchange = exDate;
   $('#setMirror').onchange = e => { S.config.mirror = e.target.checked; save(); $('#camBox').classList.toggle('mirror', S.config.mirror); };
   $('#setSound').onchange = e => { S.config.sound = e.target.checked; save(); $('#tglSound').checked = S.config.sound; };
   $('#setVoice').onchange = e => { S.config.voice = e.target.checked; save(); $('#tglVoice').checked = S.config.voice; };
@@ -3659,6 +3736,7 @@ function refreshAll() {
   renderScanSide();
   renderSettings();
   renderHelpSched();
+  renderExam();
   $('#camBox').classList.toggle('mirror', S.config.mirror);
   $('#setup').hidden = S.students.length > 0;
   if (tabRenderers[currentTab]) tabRenderers[currentTab]();
