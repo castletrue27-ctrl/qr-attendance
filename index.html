@@ -164,11 +164,11 @@ input[type=date], input[type=time] { color-scheme: dark; }
 .cam-msg:empty { display: none; }
 
 .result {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.9); z-index: 4; min-width: min(560px, 86%);
-  padding: 26px 34px 24px; border-radius: 26px; text-align: center; opacity: 0; pointer-events: none;
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(calc(var(--fit, 1) * .9)); z-index: 4; min-width: min(560px, 86%);
+  padding: 26px 34px 24px; border-radius: 26px; text-align: center; opacity: 0; pointer-events: none; max-width: calc(100% - 24px);
   background: rgba(8, 12, 24, .985); border: 2px solid var(--border-2); box-shadow: 0 30px 80px rgba(0, 0, 0, .6); transition: opacity .18s, transform .18s;
 }
-.result.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.result.show { opacity: 1; transform: translate(-50%, -50%) scale(var(--fit, 1)); }
 .result .r-icon { font-size: 50px; line-height: 1; }
 .result .r-name { font-size: clamp(40px, 6.4vw, 78px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.15; margin: 8px 0 2px; }
 .result .r-who { color: var(--text-dim); font-size: 19px; font-weight: 700; }
@@ -623,6 +623,31 @@ body.cam-live:has(#tab-scan:not(.on)) .cam-pointer { display: none; }
   .exam-cd { padding: 6px 10px; } .exam-cd .ex-name { font-size: 11px; } .exam-cd .ex-dday { font-size: 20px; } .exam-cd .ex-time { font-size: 14px; }
   .exam-grid { grid-template-columns: 1fr 1fr; }
 }
+
+/* ── 오늘의 한마디 · 명언 (카메라 아래) ── */
+.word-bar { flex: none; display: flex; flex-direction: column; gap: 4px; padding: 9px 16px 10px; border-radius: 16px;
+  background: linear-gradient(110deg, rgba(14, 43, 82, .6), rgba(59, 42, 122, .55) 60%, rgba(107, 47, 111, .5)); border: 1px solid rgba(180, 155, 255, .35); }
+.word-bar[hidden], .wb-line[hidden] { display: none; }
+.wb-line { display: flex; align-items: baseline; gap: 10px; min-width: 0; white-space: nowrap; }
+.wb-tag { flex: none; font-size: 12px; font-weight: 800; color: var(--x); padding: 2px 9px; border-radius: 999px; background: rgba(180, 155, 255, .14); }
+#wordMsg { font-size: 16.5px; font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+#wordQuote { font-size: 14.5px; color: #d9d3f5; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.wb-by { flex: none; font-size: 13px; font-weight: 800; color: var(--l); }
+.word-bar.glow { animation: wbGlow 1.6s ease-out; }
+@keyframes wbGlow { 20% { box-shadow: 0 0 0 4px rgba(180, 155, 255, .5); border-color: var(--x); } 100% { box-shadow: 0 0 0 0 rgba(180, 155, 255, 0); } }
+.edit.words input { min-width: 0; }
+.edit.words td.w-by { width: 140px; }
+@media (max-width: 860px) { .wb-line { white-space: normal; flex-wrap: wrap; } }
+
+/* ── 칭호 ── */
+.result .r-titles { margin: 12px auto 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; max-width: 640px; }
+.result .r-titles .r-cheer { margin-top: 0; font-size: 15.5px; padding: 5px 13px; }
+.result.has-titles { min-width: min(700px, 94%); }
+.result.has-titles .r-icon { font-size: 40px; }
+.result.has-titles .r-name { font-size: clamp(38px, 5.4vw, 66px); margin-top: 4px; }
+.result .r-title { display: inline-flex; align-items: center; padding: 5px 13px; border-radius: 999px; font-size: 15.5px; font-weight: 800; color: #ffe9a8;
+  background: linear-gradient(120deg, rgba(255, 207, 92, .22), rgba(255, 107, 196, .16)); border: 1px solid rgba(255, 207, 92, .6); animation: pop .4s; }
+.medal { font-size: 12px; margin-left: 2px; }
 </style>
 <style id="pageStyle">@page { size: A4 portrait; margin: 0; }</style>
 </head>
@@ -671,6 +696,10 @@ body.cam-live:has(#tab-scan:not(.on)) .cam-pointer { display: none; }
           </div>
           <div class="scan-mode" id="scanModeBanner" hidden><span id="scanModeText"></span><button class="btn sm" id="scanModeCancel">취소</button></div>
           <div class="result" id="result" aria-live="assertive"></div>
+        </div>
+        <div class="word-bar" id="wordBar" hidden>
+          <div class="wb-line" id="wordMsgLine"><span class="wb-tag">💬 오늘의 한마디</span><b id="wordMsg"></b></div>
+          <div class="wb-line wb-q" id="wordQuoteLine"><span class="wb-tag">📜 명언</span><span id="wordQuote"></span><span class="wb-by" id="wordBy"></span></div>
         </div>
         <div class="mode-row" id="modeRow">
           <button class="mode-btn toilet" data-mode="toilet"><span class="mi">🚻</span><span class="mt"><b>화장실</b><small>누르고 카드 보여 주기 · 돌아오면 카드만</small></span></button>
@@ -820,6 +849,17 @@ body.cam-live:has(#tab-scan:not(.on)) .cam-pointer { display: none; }
         <p class="hint">출석부·엑셀·카드 위쪽에 들어갑니다.</p>
       </div>
       <div class="panel wide">
+        <h2>오늘의 한마디 · 명언</h2>
+        <p class="hint">출석 체크 화면 카메라 아래에 그날의 <b>선생님 한마디</b>와 <b>공부 명언</b>이 보여요(학생이 출석하면 반짝). 칸을 고치면 바로 저장되고, <b>↺</b>를 누르면 처음 문구로 돌아가요. 칸을 비우면 그 줄은 안 보여요.</p>
+        <label class="tgl"><input type="checkbox" id="wordShow"><span></span>보이기</label>
+        <div class="tbl-wrap"><table class="edit words" id="wordTable"></table></div>
+      </div>
+      <div class="panel wide">
+        <h2>칭호 <small>도착 시간·순서로만</small></h2>
+        <p class="hint">정시에 출석하면 결과 창에 칭호가 떠요 — <b>🥇🥈🥉</b> 그날 1·2·3등 도착 · <b>🌅 얼리버드</b> 수업 10분 전보다 일찍 · <b>👑 1등 단골</b> 1등 3·5·7번째 · <b>⏰ 시간 약속 지킴이·달인·전설</b> 3·5·7일 연속 정시 · <b>🔄 다시 시작</b> 지난 수업에 늦었는데 오늘은 정시. 명단에도 그날 1·2·3등 메달이 보여요. 지각했을 때는 칭호가 나오지 않아요.</p>
+        <label class="tgl"><input type="checkbox" id="titleShow"><span></span>보이기</label>
+      </div>
+      <div class="panel wide">
         <h2>기말고사 카운트다운</h2>
         <p class="hint">출석 체크 화면 카메라 오른쪽 위에 시험까지 남은 시간이 1초마다 줄어들며 보입니다. 시험 기간에는 <b>D-DAY</b>, 끝나면 저절로 사라져요.</p>
         <div class="exam-grid">
@@ -899,7 +939,7 @@ body.cam-live:has(#tab-scan:not(.on)) .cam-pointer { display: none; }
         <div class="step"><b>2</b><div><h3>수업 날 — 태블릿 세워 두고 시작</h3>
           <p>홈 화면의 <b>QR 출석</b> 아이콘을 누르세요. 오늘이 수업일이면 지금 회차가 자동으로 골라져 있고, 1부가 끝나면 2부로 저절로 넘어가요. 태블릿을 교탁이나 교실 입구에 세워 <b>앞 카메라가 학생 쪽</b>을 보게 두고 <b>▶ 출석 체크 시작</b>. 출석 화면이 열려 있는 동안은 화면이 <b>저절로 꺼지지 않아요</b>(위쪽 <b>☀ 화면 켜짐 유지</b>). 학생이 다 들어오면 다른 앱으로 넘어가 수업에 써도 기록은 그대로 남아요.</p></div></div>
         <div class="step"><b>3</b><div><h3>학생은 카드를 카메라에 보여 주기만</h3>
-          <p>카메라에서 20~40cm 떨어져 카드를 정면으로 보여 주면 "딩동" 소리와 함께 이름이 크게 뜹니다. <b>회차 시작 시각까지는 출석</b>, 그 뒤는 <b>지각</b>으로 기록돼요. 하루 2회차라도 <b>처음에 한 번만 찍으면</b> 그날 두 회차가 함께 기록됩니다(설정에서 '회차마다 다시 찍기'로 바꿀 수 있어요). <b>수업이 끝날 때는 다시 찍지 않아도</b> 2회차까지 출석으로 남아요. 중간에 먼저 간 학생은 명단(또는 출석부)에서 이름을 눌러 <b>조퇴</b>로 고치면 됩니다(설정에서 '퇴실 체크'를 켜면 끝날 때 한 번 더 찍게 할 수도 있어요). 같은 카드를 또 보여 주면 "이미 출석"이라고만 나오고 기록은 바뀌지 않습니다. 두 명이 동시에 보여 줘도 둘 다 읽어요.</p></div></div>
+          <p>카메라에서 20~40cm 떨어져 카드를 정면으로 보여 주면 "딩동" 소리와 함께 이름이 크게 뜹니다. <b>회차 시작 시각까지는 출석</b>, 그 뒤는 <b>지각</b>으로 기록돼요. 하루 2회차라도 <b>처음에 한 번만 찍으면</b> 그날 두 회차가 함께 기록됩니다(설정에서 '회차마다 다시 찍기'로 바꿀 수 있어요). <b>수업이 끝날 때는 다시 찍지 않아도</b> 2회차까지 출석으로 남아요. 중간에 먼저 간 학생은 명단(또는 출석부)에서 이름을 눌러 <b>조퇴</b>로 고치면 됩니다(설정에서 '퇴실 체크'를 켜면 끝날 때 한 번 더 찍게 할 수도 있어요). 같은 카드를 또 보여 주면 "이미 출석"이라고만 나오고 기록은 바뀌지 않습니다. 정시에 오면 <b>🥇 1등 도착 · 🌅 얼리버드</b> 같은 칭호가 뜨고, 카메라 아래에는 그날의 <b>선생님 한마디와 명언</b>이 보여요(설정에서 고치기). 두 명이 동시에 보여 줘도 둘 다 읽어요.</p></div></div>
         <div class="step"><b>🚻</b><div><h3>화장실 · 일찍 퇴실</h3>
           <p><b>화장실</b>: 카메라 아래 <b>🚻 화장실</b>을 누르고 카드를 보여 주면 나간 시각이 기록되고, 옆 칸 "화장실" 목록에 몇 분째인지 보입니다. 돌아오면 버튼 없이 <b>카드만</b> 보여 주면 돼요. 설정한 시간(기본 10분)이 넘으면 이름이 빨갛게 바뀌고 소리로 알려 줍니다. 잘못 눌렀다면 1분 안에 카드를 다시 보여 주면 취소돼요. 출석부의 <b>화장실</b> 칸과 엑셀 <b>화장실 기록</b> 시트에 횟수·시간이 남습니다.</p>
           <p style="margin-top:6px"><b>일찍 퇴실</b>: 먼저 가야 하는 학생은 <b>🚪 일찍 퇴실</b>을 누르고 카드를 보여 주세요. 나간 시각에 진행 중이던 회차는 <b>조퇴</b>, 그 뒤 회차는 <b>결석</b>으로 기록됩니다(학교 출석부에는 둘 다 ×). 사정이 있으면 출석부에서 그 칸을 눌러 공결 등으로 바꾸세요.</p></div></div>
@@ -966,7 +1006,7 @@ body.cam-live:has(#tab-scan:not(.on)) .cam-pointer { display: none; }
 
 /* ===== 00-util.js ===== */
 /* 공용 도구 */
-const APP_VERSION = '2.0';
+const APP_VERSION = '2.1';
 // 태블릿용 웹 버전(https 주소)으로 만들 때 true — 명단을 빼고, 첫 화면에서 명단 파일을 불러옵니다
 const WEB_BUILD = true;
 const WEB_URL = 'https://castletrue27-ctrl.github.io/qr-attendance/';
@@ -1780,6 +1820,8 @@ const DEFAULT_CONFIG = {
   checkoutAfter: 30,   // 끝난 뒤 몇 분까지 받을지
   toiletWarn: 10,      // 화장실에 간 지 몇 분이 지나면 선생님께 알릴지
   wake: true,          // 프로그램이 열려 있는 동안 화면이 저절로 꺼지지 않게
+  word: true,          // 카메라 아래에 오늘의 한마디 · 명언 보이기
+  titles: true,        // 정시에 출석하면 도착 시간·순서 칭호 보이기
   // 기말고사 카운트다운 — 방과후 발표자료의 2차 정기시험 일정 (12.9 수 ~ 12.11 금)
   exam: { show: true, name: '기말고사', start: '2026-12-09', end: '2026-12-11' },
   camPos: 'top',       // 태블릿 앞 카메라가 화면의 어느 쪽에 있는지 (top · left · right · bottom) — 안내 화살표
@@ -1838,6 +1880,7 @@ function freshState() {
     closed: {},
     checkouts: {},       // 날짜 → { 카드 코드: 퇴실 시각 }
     outings: {},         // 날짜 → { 카드 코드: [{ o: 나간 시각, b: 돌아온 시각('' = 아직) }] } — 화장실
+    words: {},           // 날짜 → { m: 선생님 한마디, q: 명언, a: 인물 } — 설정에서 고친 날만 (나머지는 기본 문구)
     fixes: FIXES.slice(), // 한 번만 하는 자료 고치기 중 이미 한 것 (새 자료는 고칠 것이 없음)
     updated: 0
   };
@@ -1895,6 +1938,10 @@ function normalize(d) {
       if (!/^[A-Z0-9]{4}$/.test(t) || !Array.isArray(list)) continue;
       out.outings[date][t] = list.filter(x => x && /^\d\d:\d\d/.test(String(x.o))).map(x => ({ o: String(x.o).slice(0, 8), b: /^\d\d:\d\d/.test(String(x.b || '')) ? String(x.b).slice(0, 8) : '' }));
     }
+  }
+  out.words = {};
+  for (const [date, w] of Object.entries(d.words || {})) {
+    if (DATE_RE.test(date) && w && typeof w === 'object') out.words[date] = { m: String(w.m || '').slice(0, 80), q: String(w.q || '').slice(0, 80), a: String(w.a || '').slice(0, 20) };
   }
   out.fixes = Array.isArray(d.fixes) ? d.fixes.filter(f => typeof f === 'string').slice(0, 40) : [];
   out.updated = +d.updated || 0;
@@ -2170,6 +2217,78 @@ function checkIn(text, selId, mode = 'auto') {
   return { kind: first.rec.s === 'P' ? 'ok' : 'late', st, rec: first.rec, sess: first.sess };
 }
 
+// ── 오늘의 한마디 · 명언: 수업 날마다 하나씩 (설정에서 고친 날은 그 문구, 나머지는 아래 기본 문구) ──
+// 명언은 출처가 분명한 것만 골랐습니다
+const DEFAULT_WORDS = [
+  { m: '첫 시간! 문제집 첫 장부터 차근차근 시작해 보자.', q: '천 리 길도 발아래에서 시작된다.', a: '노자' },
+  { m: '지난 시간에 푼 문제, 오늘 한 번 더 보면 내 것이 돼.', q: '배우고 때때로 익히면 또한 기쁘지 아니한가.', a: '공자' },
+  { m: '모르는 문제엔 표시해 두고, 꼭 선생님께 물어보자.', q: '중요한 것은 질문을 멈추지 않는 것이다.', a: '알베르트 아인슈타인' },
+  { m: '틀린 문제는 부끄러운 게 아니라 오늘 배울 거리야.', q: '아는 것을 안다 하고, 모르는 것을 모른다 하는 것, 이것이 아는 것이다.', a: '공자' },
+  { m: '벌써 절반! 지름길은 없지만, 쌓은 시간이 실력이 되고 있어.', q: '기하학에는 왕도가 없습니다.', a: '유클리드' },
+  { m: '답만 맞히지 말고, 왜 그런지 설명할 수 있게 풀어 보자.', q: '내가 만들어 낼 수 없는 것은 이해하지 못한 것이다.', a: '리처드 파인먼' },
+  { m: '오늘도 문제집 한 장 더! 꾸준함이 가장 센 무기야.', q: '하루라도 책을 읽지 않으면 입안에 가시가 돋는다.', a: '안중근' },
+  { m: '힘든 만큼 남는다. 지금이 실력이 쑥 크는 때야.', q: '배움의 뿌리는 쓰지만 그 열매는 달다.', a: '아리스토텔레스' },
+  { m: '기말고사가 다가온다. 틀렸던 문제를 다시 풀며 마무리하자.', q: '행운은 준비된 마음을 좋아한다.', a: '루이 파스퇴르' },
+  { m: '마지막 날! 끝까지 온 너희가 자랑스러워. 기말고사에서 보여 주자.', q: '천재는 1%의 영감과 99%의 노력으로 이루어진다.', a: '토머스 에디슨' }
+];
+// 수업 날이 더 늘어나면 돌아가며 씀
+const EXTRA_WORDS = [
+  { m: '오늘 할 만큼, 오늘 끝까지 해 보자.', q: '교육은 세상을 바꿀 수 있는 가장 강력한 무기다.', a: '넬슨 만델라' },
+  { m: '앞서 배운 사람들의 지식이 너희의 발판이야.', q: '내가 더 멀리 보았다면, 그것은 거인들의 어깨 위에 서 있었기 때문이다.', a: '아이작 뉴턴' }
+];
+function defaultWord(date) {
+  const i = dayList().findIndex(d => d.date === date);
+  if (i < 0) return { m: '', q: '', a: '' };
+  return Object.assign({}, i < DEFAULT_WORDS.length ? DEFAULT_WORDS[i] : EXTRA_WORDS[(i - DEFAULT_WORDS.length) % EXTRA_WORDS.length]);
+}
+const wordFor = date => Object.assign({}, S.words[date] || defaultWord(date));
+function setWord(date, k, v) {
+  S.words[date] = Object.assign(wordFor(date), { [k]: String(v).slice(0, k === 'a' ? 20 : 80) });
+  save();
+}
+function resetWord(date) { delete S.words[date]; save(); }
+
+// ── 칭호: 도착 시간·순서로만 (정시에 출석할 때 결과 창에) ──
+const EARLY_MIN = 10;   // 그날 첫 회차 시작 10분 전보다 일찍 오면 얼리버드
+const firstSessOf = date => sessionsOnDate(date)[0];
+// 그날 도착 순서 [{ t, at }] — 그날 처음 기록된 출석·지각 시각 순 (시각이 없는 기록은 뺌)
+function arrivals(date) {
+  const first = {};
+  for (const s of sessionsOnDate(date)) {
+    for (const [t, r] of Object.entries(S.records[s.id] || {})) if ((r.s === 'P' || r.s === 'L') && r.at && (!first[t] || r.at < first[t])) first[t] = r.at;
+  }
+  return Object.entries(first).map(([t, at]) => ({ t, at })).sort((a, b) => a.at.localeCompare(b.at) || a.t.localeCompare(b.t));
+}
+// 그날 첫 회차를 정시에 왔는지: 'P' 정시 · 'no' 지각·결석 등 · 'skip' 공결·학생 추가 전·아직 안 끝난 미체크
+function punctualOn(date, t) {
+  const s = firstSessOf(date);
+  if (!s) return 'skip';
+  const x = statusOf(s.id, t);
+  if (x.na || x.s === 'X' || !x.s) return 'skip';
+  return x.s === 'P' ? 'P' : 'no';
+}
+const TIME_TITLES = { 3: '시간 약속 지킴이', 5: '시간 약속 달인', 7: '시간 약속 전설' };
+// 이날 정시 출석한 학생이 받는 칭호 [{ icon, text }]
+function titlesFor(t, date) {
+  const out = [], arr = arrivals(date), i = arr.findIndex(a => a.t === t), first = firstSessOf(date);
+  if (i < 0 || !first) return out;
+  if (i < 3) out.push({ icon: ['🥇', '🥈', '🥉'][i], text: `오늘 ${i + 1}등 도착${i === 0 ? '!' : ''}` });
+  const early = toMin(first.start) - toMin(arr[i].at.slice(0, 5));
+  if (early >= EARLY_MIN) out.push({ icon: '🌅', text: `얼리버드 · 수업 ${early}분 전` });
+  const days = dayList().map(d => d.date).filter(d => d <= date);
+  if (i === 0) {
+    const n = days.filter(d => (arrivals(d)[0] || {}).t === t).length;
+    if ([3, 5, 7].includes(n)) out.push({ icon: '👑', text: `1등 단골 · 벌써 ${n}번째 1등` });
+  }
+  let streak = 0;
+  for (let k = days.length - 1; k >= 0; k--) { const p = punctualOn(days[k], t); if (p === 'skip') continue; if (p !== 'P') break; streak++; }
+  if (TIME_TITLES[streak]) out.push({ icon: '⏰', text: `${TIME_TITLES[streak]} · ${streak}일 연속 정시` });
+  // 다시 시작: 바로 전 수업 날에 늦었는데 오늘은 정시
+  const prev = days[days.length - 2];
+  if (prev && sessionsOnDate(prev).some(s => statusOf(s.id, t).s === 'L')) out.push({ icon: '🔄', text: '다시 시작 · 오늘은 정시 도착!' });
+  return out;
+}
+
 // ── 응원: 연속 출석 · 개근 · 완주 ──
 // 이 회차까지 연속으로 '출석'한 회차 수 — 공결은 건너뛰고, 지각·조퇴·결석이면 다시 0부터
 function streakUpTo(t, sessId) {
@@ -2253,7 +2372,7 @@ function importRoster(text) {
   const next = normalize({
     config: Object.assign({}, S.config, { title: d.title || S.config.title, term: d.term || S.config.term, form: Object.assign({}, S.config.form, d.form || {}) }),
     students: d.students, sessions: Array.isArray(d.sessions) && d.sessions.length ? d.sessions : S.sessions,
-    records: S.records, closed: S.closed, checkouts: S.checkouts, outings: S.outings, fixes: S.fixes, updated: S.updated
+    records: S.records, closed: S.closed, checkouts: S.checkouts, outings: S.outings, words: S.words, fixes: S.fixes, updated: S.updated
   });
   if (!next.students.length) throw new Error('명단에 학생이 없어요');
   S = next;
@@ -2712,8 +2831,21 @@ function dayLine(st) {
   return day.map(s => { const y = statusOf(s.id, st.t); return `${sessionNo(s.id)}회차 ${y.s ? STATUS[y.s].label : '미체크'}`; }).join(' · ');
 }
 
+// ── 오늘의 한마디 · 명언 (고른 회차의 날짜, 수업이 없는 날이면 다음 수업 날) ──
+function renderWord() {
+  const sess = sessionById(selectedId), bar = $('#wordBar');
+  const w = sess ? wordFor(sess.date) : { m: '', q: '' };
+  bar.hidden = !S.config.word || (!w.m && !w.q);
+  $('#wordMsgLine').hidden = !w.m;
+  $('#wordQuoteLine').hidden = !w.q;
+  $('#wordMsg').textContent = w.m;
+  $('#wordQuote').textContent = w.q ? `“${w.q}”` : '';
+  $('#wordBy').textContent = w.a ? `— ${w.a}` : '';
+}
+
 function renderScanSide() {
   const sess = sessionById(selectedId), today = dateKey(now());
+  renderWord();
   $('#sessTime').textContent = sess ? `${fmtDate(sess.date, true)} · ${sess.start} ~ ${sess.end}` : '';
   $('#sessNote').textContent = sess && sess.note ? sess.note : '';
   const [mcls, mtxt] = modeOf(sess);
@@ -2752,6 +2884,8 @@ function renderRoster(sess) {
   const showOut = !!(ow && ow.last.id === sess.id && (S.closed[sess.id] || sess.date < today || (sess.date === today && nowMin() >= ow.open)));
   // ④ 회차가 시작된 뒤(지각 시간부터)에는 아직 안 온 학생을 맨 위로
   const started = !!(sess && sess.date === today && ['late', 'over'].includes(sessionPhase(sess)) && !S.closed[sess.id]);
+  const medals = {};
+  if (sess && sess.date === today && S.config.titles) arrivals(today).slice(0, 3).forEach((a, i) => { medals[a.t] = ['🥇', '🥈', '🥉'][i]; });
   let list = studentsSorted();
   if (started) { const miss = st => !statusOf(sess.id, st.t).s; list = [...list.filter(miss), ...list.filter(st => !miss(st))]; }
   const missing = started ? list.filter(st => !statusOf(sess.id, st.t).s && !statusOf(sess.id, st.t).na).length : 0;
@@ -2774,7 +2908,7 @@ function renderRoster(sess) {
     box.append(h('button', {
       class: 'stu' + (x.s ? ' ' + STATUS[x.s].cls : '') + (x.auto ? ' auto' : ''), dataset: { t: st.t }, title: '눌러서 직접 체크',
       onclick: e => { if (sess) openPop(e.currentTarget, sess.id, st.t, renderScanSide); }
-    }, h('span', { class: 'nm-row' }, h('span', { class: 'nm' }, st.name), perfectSoFar(st.t) ? h('span', { class: 'star', title: '지각·결석 없이 개근 중' }, '⭐') : '', away ? h('span', { class: 'away-badge', title: '화장실' }, '🚻') : '', dots), h('span', { class: 'cl' }, `${stuLabel(st)} · ${st.n}번`), h('span', { class: 'st tnum' }, label)));
+    }, h('span', { class: 'nm-row' }, h('span', { class: 'nm' }, st.name), medals[st.t] ? h('span', { class: 'medal', title: '오늘 도착 순서' }, medals[st.t]) : '', perfectSoFar(st.t) ? h('span', { class: 'star', title: '지각·결석 없이 개근 중' }, '⭐') : '', away ? h('span', { class: 'away-badge', title: '화장실' }, '🚻') : '', dots), h('span', { class: 'cl' }, `${stuLabel(st)} · ${st.n}번`), h('span', { class: 'st tnum' }, label)));
     if (away) box.lastChild.classList.add('away');
     if (started && !x.s) box.lastChild.classList.add('missing');
   }
@@ -2993,8 +3127,16 @@ function showResult(r) {
   const box = $('#result');
   box.className = 'result ' + v.cls;
   box.innerHTML = '';
+  // 칭호: 정시 출석(ok)일 때만 — 도착 시간·순서로 받는 것들
+  const titles = r.kind === 'ok' && S.config.titles ? titlesFor(st.t, r.sess.date) : [];
   box.append(h('div', { class: 'r-icon' }, v.icon), h('div', { class: 'r-name' }, v.name), v.who ? h('div', { class: 'r-who' }, v.who) : '',
-    h('div', { class: 'r-msg' }, v.msg), v.sub ? h('div', { class: 'r-sub' }, v.sub) : '', v.cheer ? h('div', { class: 'r-cheer' }, v.cheer) : '');
+    h('div', { class: 'r-msg' }, v.msg), v.sub ? h('div', { class: 'r-sub' }, v.sub) : '',
+    titles.length ? h('div', { class: 'r-titles' }, ...titles.map(x => h('span', { class: 'r-title' }, `${x.icon} ${x.text}`)), v.cheer ? h('span', { class: 'r-cheer' }, v.cheer) : '')
+      : v.cheer ? h('div', { class: 'r-cheer' }, v.cheer) : '');
+  box.classList.toggle('has-titles', titles.length > 0);
+  // 내용이 카메라 칸보다 크면(칭호가 많을 때·세로 화면) 창 전체를 줄여서 칸 안에 맞춤
+  box.style.setProperty('--fit', Math.min(1, ($('#camBox').clientHeight - 16) / box.offsetHeight).toFixed(3));
+  if (r.kind === 'ok' || r.kind === 'late' || r.kind === 'win') { const wb = $('#wordBar'); wb.classList.remove('glow'); void wb.offsetWidth; wb.classList.add('glow'); }
   void box.offsetWidth;
   box.classList.add('show');
   clearTimeout(resultTimer);
@@ -3584,12 +3726,36 @@ function renderRuleExample() {
   $('#ruleExample').innerHTML = txt + ' 체크 시작 전에는 연습 모드(기록 안 됨)로 동작해요.';
 }
 
+// 오늘의 한마디 · 명언 표 (수업 날마다 한 줄) — 고치는 중에는 다시 그리지 않음
+function renderWordTable() {
+  const t = $('#wordTable');
+  if (t.contains(document.activeElement)) return;
+  t.innerHTML = '';
+  t.append(h('tr', null, ...['날짜', '선생님 한마디', '명언', '인물', ''].map(x => h('th', null, x))));
+  for (const d of dayList()) {
+    const w = wordFor(d.date), changed = !!S.words[d.date];
+    const inp = (k, ph) => {
+      const el = h('input', { value: w[k], placeholder: ph, maxlength: k === 'a' ? 20 : 80, 'aria-label': `${fmtDate(d.date)} ${ph}` });
+      el.dataset.k = k;
+      el.oninput = () => { setWord(d.date, k, el.value); reset.hidden = false; renderWord(); };
+      return el;
+    };
+    const reset = h('button', { class: 'del', title: '기본 문구로', onclick: () => { resetWord(d.date); renderWordTable(); renderWord(); } }, '↺');
+    reset.hidden = !changed;
+    const tr = h('tr', { dataset: { date: d.date } }, h('td', { class: 'mono' }, fmtDate(d.date)), h('td', null, inp('m', '선생님 한마디')), h('td', null, inp('q', '명언')), h('td', { class: 'w-by' }, inp('a', '인물')), h('td', null, reset));
+    t.append(tr);
+  }
+}
+
 function renderSettings() {
   $('#setOpen').value = String(S.config.openBefore);
   $('#setGrace').value = String(S.config.lateGrace);
   $('#setScanMode').value = S.config.scanEach ? 'each' : 'day';
   $('#setCheckout').value = S.config.checkout ? 'on' : 'off';
   $('#setWake').value = S.config.wake ? 'on' : 'off';
+  $('#wordShow').checked = S.config.word;
+  $('#titleShow').checked = S.config.titles;
+  renderWordTable();
   $('#setToilet').value = String(S.config.toiletWarn);
   $('#setCamPos').value = S.config.camPos || 'top';
   $('#exShow').checked = S.config.exam.show;
@@ -3711,6 +3877,8 @@ function initSettings() {
   $('#setCheckout').onchange = e => { S.config.checkout = e.target.value === 'on'; save(); renderRuleExample(); lastPhaseKey = ''; };
   $('#setToilet').onchange = e => { S.config.toiletWarn = +e.target.value; save(); };
   $('#setWake').onchange = e => { S.config.wake = e.target.value === 'on'; save(); keepAwake(); };
+  $('#wordShow').onchange = e => { S.config.word = e.target.checked; save(); renderWord(); };
+  $('#titleShow').onchange = e => { S.config.titles = e.target.checked; save(); renderScanSide(); };
   $('#setCamPos').onchange = e => { S.config.camPos = e.target.value; save(); renderCamGuide(); };
   $('#exShow').onchange = e => { S.config.exam.show = e.target.checked; save(); renderExam(); };
   $('#exName').oninput = e => { S.config.exam.name = e.target.value.trim() || '기말고사'; save(); renderExam(); };
